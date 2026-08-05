@@ -1,0 +1,17 @@
+{
+	"name": "Demo Case Study",
+	"image": "mcr.microsoft.com/devcontainers/python:3.13",
+
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-python.python",
+				"charliermarsh.ruff",
+				"tamasfe.even-better-toml",
+				"Anthropic.claude-code"
+			]
+		}
+	},
+	"remoteUser": "root",
+	"onCreateCommand": "curl -fsSL https://claude.ai/install.sh | bash", // "uv sync" // TODO enable once setup
+}
