@@ -104,6 +104,17 @@ body {
   font-size: 0.82rem;
 }
 
+.about-label {
+  font-size: 0.8rem;
+  font-weight: 650;
+  margin-bottom: 0.15rem;
+}
+
+.about-text {
+  font-size: 0.86rem;
+  color: var(--muted);
+}
+
 /* ---- buttons ----------------------------------------------------------- */
 
 /* Pausing the stream is a normal control, not a fault, so it uses the palette
@@ -289,11 +300,13 @@ body {
   margin-bottom: 0.3rem;
 }
 
+/* An annotation, not a warning: amber and red belong to the wear levels, so a note
+   wearing them would read as an alert. */
 .caveat {
-  border-left: 3px solid var(--worn);
-  background: #fffaf0;
+  border-left: 3px solid var(--muted);
+  background: #eef1f6;
   padding: 0.7rem 0.95rem;
   border-radius: 0 6px 6px 0;
   font-size: 0.86rem;
-  color: #6a5220;
+  color: #45505d;
 }

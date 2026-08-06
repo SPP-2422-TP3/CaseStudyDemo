@@ -103,7 +103,7 @@ Measured on the actual data, not rounded up:
 |---|---|---|---|---|---|---|
 | | LogReg | Forest | CNN | LogReg | Forest | CNN |
 | **Held-out strokes** | 100% | 100% | 100% | 94% | 99% | 98% |
-| **Unseen run** | 99.6% | 99.6% | 100% | 31% | 27% | 32% |
+| **Unseen run** | 99.5% | 99.6% | 99.9% | 31% | 27% | 32% |
 
 *Held-out strokes* trains on strokes 0–399 of every run and tests on the rest. That is the split
 the deployed model uses, and it measures monitoring a tool that has already been characterised.

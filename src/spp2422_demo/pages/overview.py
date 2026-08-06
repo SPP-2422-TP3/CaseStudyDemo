@@ -12,7 +12,7 @@ from spp2422_demo.components.curve_figure import (
     level_means_figure,
     measured_vs_simulated_figure,
 )
-from spp2422_demo.components.layout import caveat, page_header, panel, stat_card
+from spp2422_demo.components.layout import caveat, page_header, panel, percent, stat_card
 from spp2422_demo.components.process import process_diagram
 from spp2422_demo.data import STATIONS
 
@@ -75,7 +75,7 @@ def layout(**_kwargs):
                     dbc.Col(
                         stat_card(
                             "Deep drawing",
-                            f"{best['deep_drawing']:.0%}",
+                            percent(best["deep_drawing"]),
                             "accuracy on a production run never seen in training",
                         ),
                         md=3,
@@ -83,7 +83,7 @@ def layout(**_kwargs):
                     dbc.Col(
                         stat_card(
                             "Ironing",
-                            f"{best['ironing']:.0%}",
+                            percent(best["ironing"]),
                             "accuracy on a production run never seen in training",
                         ),
                         md=3,
@@ -166,7 +166,7 @@ def layout(**_kwargs):
                     ),
                     html.Strong("Ironing passes only the first: "),
                     html.Span(
-                        f"on an unseen run it drops to {best['ironing']:.0%}, at or below the "
+                        f"on an unseen run it drops to {percent(best['ironing'])}, at or below the "
                         "33% chance level, so its high held-out score reflects run identity "
                         "rather than wear. That matches the project's own finding that the "
                         "ironing signal is substantially harder than the deep drawing one."

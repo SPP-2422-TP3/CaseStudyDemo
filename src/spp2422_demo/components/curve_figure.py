@@ -9,6 +9,7 @@ from plotly.subplots import make_subplots
 from ..data import EVENT_TIME, LEVELS, StationData
 from ..explain import Attribution
 from ..theme import GRID, INK, LEVEL_COLORS, MUTED, SIMULATED
+from .layout import percent
 
 AXIS_TITLE = "Event time (0 = onset, 1 = end of event)"
 FORCE_TITLE = "Normalized force"
@@ -276,7 +277,7 @@ def accuracy_figure(models: dict, accuracy: dict, run_accuracy: dict) -> go.Figu
                 x=names,
                 y=[accuracy[key] for key in models],
                 marker={"color": "#0072B2"},
-                text=[f"{accuracy[key]:.0%}" for key in models],
+                text=[percent(accuracy[key]) for key in models],
                 textposition="outside",
                 cliponaxis=False,
             ),
@@ -285,7 +286,7 @@ def accuracy_figure(models: dict, accuracy: dict, run_accuracy: dict) -> go.Figu
                 x=names,
                 y=[run_accuracy[key] for key in models],
                 marker={"color": "#E69F00"},
-                text=[f"{run_accuracy[key]:.0%}" for key in models],
+                text=[percent(run_accuracy[key]) for key in models],
                 textposition="outside",
                 cliponaxis=False,
             ),

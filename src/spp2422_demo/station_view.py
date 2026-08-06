@@ -11,12 +11,14 @@ import dash_bootstrap_components as dbc
 import numpy as np
 from dash import MATCH, Input, Output, State, callback, ctx, dcc, html, no_update
 
-from .artifacts import load_artifacts
+from .artifacts import TrainedStation, load_artifacts
 from .components.curve_figure import confidence_figure, stroke_figure
-from .components.layout import caveat, level_badge, page_header, panel
+from .components.layout import caveat, level_badge, page_header, panel, percent
 from .components.wear_alert import alert_facts, alert_id, wear_alert
 from .data import LEVELS, STATIONS
 from .explain import explain
+from .features import curve_features
+from .models import FeatureModel
 from .theme import LEVEL_NAMES
 
 CRITICAL = 3
@@ -164,11 +166,98 @@ def layout(station_key: str) -> html.Div:
                 ),
                 className="mt-4",
             ),
+            html.Div(
+                panel("About this model", html.Div(id=_id(station_key, "about-model"))),
+                className="mt-4",
+            ),
             wear_alert(station),
             dcc.Interval(
                 id=_id(station_key, "stream-interval"), interval=STREAM_INTERVAL_MS, disabled=True
             ),
             dcc.Store(id=_id(station_key, "last-level"), data=None),
+        ]
+    )
+
+
+def _about_item(label: str, *children) -> dbc.Col:
+    return dbc.Col(
+        [html.Div(label, className="about-label"), html.Div(children, className="about-text")],
+        md=4,
+    )
+
+
+def _about_model(trained: TrainedStation, model_key: str) -> html.Div:
+    """Plain-language card on the model currently selected: what it reads, what it was
+    trained on, how well it does, and how it is explained."""
+    data = trained.data
+    model = trained.models[model_key]
+    burst = data.peak_ref is not None
+
+    if isinstance(model, FeatureModel):
+        n_features = len(
+            curve_features(
+                data.curves[0], burst=burst, peak_ref=data.peak_ref[0] if burst else None
+            )
+        )
+        reads = (
+            f"{n_features} shape descriptors measured off the curve — how high the peak is and "
+            "when it falls, how long the rise and the fall take, and how straight each segment "
+            "runs" + (", plus the burst as the tool takes contact." if burst else ".")
+        )
+        method = (
+            "Occlusion sensitivity: every stretch of the stroke is flattened in turn and the "
+            "confidence it was carrying is recorded."
+        )
+    else:
+        reads = (
+            "the raw 500-sample curve. Nothing is measured off it beforehand — the network "
+            "learns during training which shapes carry the wear state."
+        )
+        method = (
+            "Integrated gradients: the sensitivity of the prediction accumulated along a path "
+            "from the average stroke to this one."
+        )
+
+    # The unseen-run score is the one worth reading, so it says outright when it is only
+    # chance -- which is where ironing sits, and where the demo must not oversell.
+    chance = 1 / len(LEVELS)
+    unseen = trained.run_accuracy[model_key]
+    verdict = (
+        f"{percent(unseen)} of a production run it has never seen — no better than guessing "
+        f"between the three levels ({percent(chance)}), so on an unfamiliar tool this model "
+        "cannot yet be relied on."
+        if unseen <= chance + 0.05
+        else f"{percent(unseen)} of a production run it has never seen, against "
+        f"{percent(chance)} for guessing — the number that decides whether this is usable "
+        "in production."
+    )
+
+    n_train = int(data.train_mask.sum())
+    return html.Div(
+        [
+            html.Div(model.name, style={"fontWeight": 600}),
+            html.Div(model.description.replace("--", "—"), className="section-note mb-3"),
+            dbc.Row(
+                [
+                    _about_item("Reads", reads),
+                    _about_item(
+                        "Trained on",
+                        f"{n_train:,}".replace(",", " ") + " strokes: the first 400 of each of "
+                        f"the {len(data.runs())} production runs, every wear combination "
+                        "included.",
+                    ),
+                    _about_item(
+                        "Gets right",
+                        html.Div(
+                            f"{percent(trained.accuracy[model_key])} of later strokes from "
+                            "those same runs."
+                        ),
+                        html.Div(verdict, className="mt-1"),
+                    ),
+                ],
+                className="g-4",
+            ),
+            html.Div(method, className="section-note mt-3"),
         ]
     )
 
@@ -234,6 +323,14 @@ def update_view(model_key, run_value, stroke, last_level):
         facts,
         level,
     )
+
+
+@callback(
+    Output(_id(MATCH, "about-model"), "children"),
+    Input(_id(MATCH, "model-select"), "value"),
+)
+def describe_model(model_key):
+    return _about_model(load_artifacts(ctx.outputs_list["id"]["station"]), model_key)
 
 
 @callback(
