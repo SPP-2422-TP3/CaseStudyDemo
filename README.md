@@ -127,19 +127,30 @@ other runs at the same upstream T in the training set, carrying **different** ir
 model matches the test strokes to those neighbours and answers with their label: A1 is called A2
 1051 times out of 1500, A2 is called A1 1056 times. That is a confound, not ignorance.
 
-Group the folds by upstream state instead — withhold all three runs of one T, train on the six at
-the other two — and the same features reach **56.00%**. Against a null of 200 runs relabelled at
-random, only the T-grouped result survives:
+The obvious repair does not work. Deep drawing predicts its own state at 99.6–100% on an unseen run,
+and `data/curves.npz` holds both stations row for row from the same press stroke, so the upstream
+state really is available at prediction time. Handing it to the ironing model — appended as the
+three predicted T probabilities, or subtracted from the descriptors as a fitted T-effect — makes the
+split worse rather than better:
 
-| | leave one run out | leave one upstream T out |
-|---|---|---|
-| all descriptors | 31.13% (p = 0.36) | **56.00%** (p = 0.025) |
-| variance and draw-down only | 39.24% (p = 0.18) | **55.76%** (p = 0.020) |
+| variant | unseen run |
+|---|---|
+| ironing descriptors alone | 31.13% (p = 0.36) |
+| variance and draw-down only | 39.24% (p = 0.18) |
+| + predicted upstream T | 17.56% |
+| upstream T-effect removed | 17.96% |
 
-The null is wide — 25–27% ± 15 — because nine runs is not many, which is exactly why the point
-estimate alone would not have been worth reporting. `scripts/ironing_protocols.py` reproduces the
-table. The dashboard keeps showing leave-one-run-out because it is the harder question, but the
-honest reading of it is "not under this protocol", not "never".
+Both chained variants land *below* the 33.33% chance level, so their permutation p-values (0.62 and
+0.60 against a null of 200 relabelled runs) only confirm there is nothing there to test. Told T = t
+outright, the model picks a neighbouring A level with more confidence, because at T = t those are
+the only labels it has ever seen — the same confound, sharpened. That subtracting the effect fails
+too says the additive reading `x ≈ μ + α(A) + β(T)` does not hold here. The chain itself is sound:
+the upstream model scores 100% on every held-out run, which the script prints as its own check.
+
+The null is wide — 24–27% ± 15 — because nine runs is not many, which is why no point estimate here
+carries much on its own. `scripts/ironing_protocols.py` reproduces the table. The dashboard keeps
+showing leave-one-run-out because it is the harder question; the confound is real, but nothing tried
+here lifts the number off chance, so the caveat stands as measured.
 
 ## Background
 
@@ -164,7 +175,7 @@ src/spp2422_demo/
   components/        figures, cards, the alert
   assets/            stylesheet and the CAD animation of the die
 scripts/extract_data.py       rebuilds data/curves.npz from the research pipeline
-scripts/ironing_protocols.py  the two validation protocols behind the ironing caveat
+scripts/ironing_protocols.py  the chaining experiments behind the ironing caveat
 compose.yaml                  one-command start on a machine that only has Docker
 ```
 
