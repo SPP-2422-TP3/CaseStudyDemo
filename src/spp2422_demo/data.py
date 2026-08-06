@@ -38,6 +38,10 @@ class Station:
     peak_ref_key: str | None
     sim_key: str
     sim_mu_key: str
+    # The *upstream* friction axis of the same simulated curves, where one exists. Only
+    # the ironing sweep varies two coefficients at once, which is what lets the
+    # calibration tell a feature tracking its own wear from one tracking the die above it.
+    sim_mu_other_key: str | None
     description: str
 
     def level_name(self, level: int) -> str:
@@ -53,6 +57,7 @@ DEEP_DRAWING = Station(
     peak_ref_key=None,
     sim_key="sim_deep_drawing",
     sim_mu_key="sim_dd_mu",
+    sim_mu_other_key=None,
     description=(
         "The punch draws the blank through the die. Force rises as the blank flows over "
         "the draw radius, then declines as the flange is consumed."
@@ -68,6 +73,7 @@ IRONING = Station(
     peak_ref_key="real_ironing_burst_suppressed",
     sim_key="sim_ironing",
     sim_mu_key="sim_ir_mu",
+    sim_mu_other_key="sim_ir_mu_dd",
     description=(
         "The wall is thinned between punch and ironing ring. Friction acts directly on "
         "the forming force here, which makes this stage the more wear-sensitive of the two."
@@ -90,6 +96,7 @@ class StationData:
     sim_curves: np.ndarray  # (m, 500) FE-simulated, normalized force
     sim_levels: np.ndarray  # (m,) wear level from the mu tercile
     sim_mu: np.ndarray  # (m,) friction coefficient
+    sim_mu_other: np.ndarray | None  # (m,) the upstream stage's coefficient, ironing only
 
     @property
     def train_mask(self) -> np.ndarray:
@@ -154,4 +161,5 @@ def load_station(key: str) -> StationData:
         sim_curves=raw[station.sim_key].astype(np.float32),
         sim_levels=mu_terciles(sim_mu),
         sim_mu=sim_mu,
+        sim_mu_other=(raw[station.sim_mu_other_key] if station.sim_mu_other_key else None),
     )

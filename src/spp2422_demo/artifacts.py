@@ -1,58 +1,51 @@
-"""Training the models once, validating them two ways, and keeping both on disk.
+"""Training the models once, calibrating against the sweep, and keeping both on disk.
 
 The dashboard should start instantly, so results are cached. Delete `data/models/` (or
 run `spp2422-demo prepare --force`) to rebuild.
 
-Two accuracies are reported for every model, because they answer different questions and
-they disagree sharply for one of the two stages:
+Two questions are answered here, and they are not the same question:
 
 - **Held-out strokes** -- train on strokes 0..399 of each production run, test on the
-  rest. This is the split the deployed model uses. It measures monitoring an already
-  characterised tool.
-- **Unseen run** -- hold out a whole T x A production run, train on the other eight.
-  This measures whether the model recognises the wear state itself rather than the run
-  it came from, and it is the number to trust when asking "would this work on a tool we
-  have not seen before".
+  rest. This is the split the deployed classifiers use, and it measures monitoring a tool
+  that has already been characterised.
+- **The withheld centre state** -- take the intermediate wear level out of training
+  altogether and ask whether the simulated friction sweep can put it back between the two
+  real endpoints. That is `calibration.py`, and it is the question worth asking about a
+  state nobody can label in production.
 """
 
 from __future__ import annotations
 
 import pickle
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from functools import cache
 from pathlib import Path
 
 import numpy as np
 
+from .calibration import Calibration, calibrate
 from .data import STATIONS, StationData, load_station
 from .features import feature_matrix
 from .models import WearModel, build_models
 
 CACHE_DIR = Path(__file__).resolve().parents[2] / "data" / "models"
 # Bump when anything that changes a trained model changes, so stale caches are ignored.
-CACHE_VERSION = 3
+CACHE_VERSION = 4
 
 
 @dataclass
 class TrainedStation:
-    """Models for one forming stage, with both validation scores."""
+    """Models for one forming stage, plus its centre-state calibration."""
 
     data: StationData
     models: dict[str, WearModel]
     accuracy: dict[str, float]  # held-out strokes of known runs
-    run_accuracy: dict[str, float] = field(default_factory=dict)  # unseen run
+    calibration: Calibration
 
     @property
     def default_model(self) -> str:
-        """The model to select first: best on the honest split, ties broken by the other."""
-        return max(
-            self.models,
-            key=lambda key: (self.run_accuracy.get(key, 0.0), self.accuracy.get(key, 0.0)),
-        )
-
-    def generalises(self, threshold: float = 0.5) -> bool:
-        """Whether any model beats coin-flip territory on a run it has never seen."""
-        return bool(self.run_accuracy) and max(self.run_accuracy.values()) >= threshold
+        """The model to select first."""
+        return max(self.models, key=lambda key: self.accuracy.get(key, 0.0))
 
 
 def _train(key: str) -> TrainedStation:
@@ -70,17 +63,7 @@ def _train(key: str) -> TrainedStation:
         models[model.key] = model
         accuracy[model.key] = float(np.mean(predicted == data.labels[test]))
 
-    # Leave-one-run-out, on freshly built models so the deployed ones stay untouched.
-    folds: dict[str, list[float]] = {}
-    for own, other in data.runs():
-        held = data.run_mask(own, other)
-        for model in build_models(burst=burst):
-            model.fit_matrix(curves[~held], features[~held], data.labels[~held])
-            predicted = model.predict_proba_matrix(curves[held], features[held]).argmax(axis=1) + 1
-            folds.setdefault(model.key, []).append(float(np.mean(predicted == own)))
-    run_accuracy = {key: float(np.mean(scores)) for key, scores in folds.items()}
-
-    return TrainedStation(data=data, models=models, accuracy=accuracy, run_accuracy=run_accuracy)
+    return TrainedStation(data=data, models=models, accuracy=accuracy, calibration=calibrate(data))
 
 
 @cache
@@ -94,7 +77,7 @@ def load_artifacts(key: str) -> TrainedStation:
                 data=load_station(key),
                 models=payload["models"],
                 accuracy=payload["accuracy"],
-                run_accuracy=payload["run_accuracy"],
+                calibration=payload["calibration"],
             )
 
     trained = _train(key)
@@ -105,7 +88,7 @@ def load_artifacts(key: str) -> TrainedStation:
                 "version": CACHE_VERSION,
                 "models": trained.models,
                 "accuracy": trained.accuracy,
-                "run_accuracy": trained.run_accuracy,
+                "calibration": trained.calibration,
             }
         )
     )
@@ -113,7 +96,7 @@ def load_artifacts(key: str) -> TrainedStation:
 
 
 def prepare(force: bool = False) -> None:
-    """Train and cache every stage, printing both validation scores."""
+    """Train and cache every stage, printing what each one is worth."""
     if force:
         for path in CACHE_DIR.glob("*.pkl"):
             path.unlink()
@@ -123,11 +106,20 @@ def prepare(force: bool = False) -> None:
         trained = load_artifacts(key)
         held_out = int((~trained.data.train_mask).sum())
         print(f"\n==> {station.name}, {held_out} held-out strokes")
-        print(f"    {'':22s} {'held-out':>10s} {'unseen run':>12s}")
         for model_key in trained.models:
-            print(
-                f"    {trained.models[model_key].name:22s}"
-                f" {trained.accuracy[model_key]:9.1%} {trained.run_accuracy[model_key]:11.1%}"
-            )
-        if not trained.generalises():
-            print("    ! no model beats chance on an unseen run -- see README")
+            print(f"    {trained.models[model_key].name:22s} {trained.accuracy[model_key]:9.1%}")
+
+        calibration = trained.calibration
+        print(f"    calibrated on {', '.join(calibration.features)}")
+        best = calibration.best()
+        if best is None:
+            print("    ! the withheld centre state is never placed better than the control")
+            continue
+        window, budget, p = best
+        mix = calibration.at(window, budget, "mix")
+        control = calibration.at(window, budget, "shuffled-sim")
+        print(
+            f"    centre state best placed at first {window} strokes, {budget} real/endpoint: "
+            f"{mix.position:.3f} vs {control.position:.3f} shuffled (p = {p:.4f}); "
+            f"0.5 would be exactly centred"
+        )

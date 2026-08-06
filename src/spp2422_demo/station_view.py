@@ -222,18 +222,12 @@ def _about_model(trained: TrainedStation, model_key: str) -> html.Div:
         "confidence it was carrying is recorded."
     )
 
-    # The unseen-run score is the one worth reading, so it says outright when it is only
-    # chance -- which is where ironing sits, and where the demo must not oversell.
-    chance = 1 / len(LEVELS)
-    unseen = trained.run_accuracy[model_key]
-    verdict = (
-        f"{percent(unseen)} of a production run it has never seen — no better than guessing "
-        f"between the three levels ({percent(chance)}), so on an unfamiliar tool this model "
-        "cannot yet be relied on."
-        if unseen <= chance + 0.05
-        else f"{percent(unseen)} of a production run it has never seen, against "
-        f"{percent(chance)} for guessing — the number that decides whether this is usable "
-        "in production."
+    # What this number is not: every wear level appears in training here, so it measures
+    # monitoring an already characterised tool. The Wear threshold page asks the harder
+    # question, about a state the model was never shown.
+    scope = (
+        "Every wear level appears in training, so this measures watching a tool that has "
+        "already been characterised — not recognising a state it has never been shown."
     )
 
     n_train = int(data.train_mask.sum())
@@ -256,7 +250,7 @@ def _about_model(trained: TrainedStation, model_key: str) -> html.Div:
                             f"{percent(trained.accuracy[model_key])} of later strokes from "
                             "those same runs."
                         ),
-                        html.Div(verdict, className="mt-1"),
+                        html.Div(scope, className="mt-1"),
                     ),
                 ],
                 className="g-4",

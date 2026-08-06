@@ -8,7 +8,7 @@ from dash import html
 
 from spp2422_demo.components.layout import page_header, panel
 
-dash.register_page(__name__, path="/quality", name="Product quality", order=3)
+dash.register_page(__name__, path="/quality", name="Product quality", order=4)
 
 
 def layout(**_kwargs):

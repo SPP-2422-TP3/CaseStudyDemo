@@ -8,7 +8,7 @@ from plotly.subplots import make_subplots
 
 from ..data import EVENT_TIME, LEVELS, StationData
 from ..explain import Attribution
-from ..theme import GRID, INK, LEVEL_COLORS, MUTED, SIMULATED
+from ..theme import GRID, INK, LEVEL_COLORS, MUTED, OKABE_ITO, SIMULATED
 from .layout import percent
 
 AXIS_TITLE = "Event time (0 = onset, 1 = end of event)"
@@ -267,30 +267,19 @@ def measured_vs_simulated_figure(data: StationData) -> go.Figure:
     return figure
 
 
-def accuracy_figure(models: dict, accuracy: dict, run_accuracy: dict) -> go.Figure:
-    """Both validation scores side by side, per model."""
+def accuracy_figure(models: dict, accuracy: dict) -> go.Figure:
+    """Held-out-stroke accuracy per model. One series, so the title carries the identity."""
     names = [models[key].name for key in models]
     figure = go.Figure(
-        [
-            go.Bar(
-                name="Held-out strokes",
-                x=names,
-                y=[accuracy[key] for key in models],
-                marker={"color": "#0072B2"},
-                text=[percent(accuracy[key]) for key in models],
-                textposition="outside",
-                cliponaxis=False,
-            ),
-            go.Bar(
-                name="Unseen run",
-                x=names,
-                y=[run_accuracy[key] for key in models],
-                marker={"color": "#E69F00"},
-                text=[percent(run_accuracy[key]) for key in models],
-                textposition="outside",
-                cliponaxis=False,
-            ),
-        ]
+        go.Bar(
+            x=names,
+            y=[accuracy[key] for key in models],
+            marker={"color": OKABE_ITO[0]},
+            text=[percent(accuracy[key]) for key in models],
+            textposition="outside",
+            cliponaxis=False,
+            hovertemplate="<b>%{x}</b><br>%{y:.2%} of held-out strokes<extra></extra>",
+        )
     )
     figure.add_hline(
         y=1 / len(LEVELS),
@@ -299,7 +288,7 @@ def accuracy_figure(models: dict, accuracy: dict, run_accuracy: dict) -> go.Figu
         annotation_position="top left",
     )
     figure.update_layout(
-        barmode="group",
+        showlegend=False,
         yaxis={"range": [0, 1.12], "tickformat": ".0%", "title": "Accuracy"},
         margin={"l": 60, "r": 20, "t": 10, "b": 40},
         height=280,

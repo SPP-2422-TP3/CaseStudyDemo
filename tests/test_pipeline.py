@@ -6,6 +6,14 @@ import numpy as np
 import pytest
 
 from spp2422_demo.artifacts import load_artifacts
+from spp2422_demo.calibration import (
+    BUDGETS,
+    CENTRE,
+    ENDPOINTS,
+    N_FEATURES,
+    VARIANTS,
+    WINDOWS,
+)
 from spp2422_demo.data import LEVELS, N_SAMPLES, STATIONS, load_station, mu_terciles
 from spp2422_demo.explain import explain
 from spp2422_demo.features import curve_features
@@ -64,18 +72,41 @@ def test_models_beat_chance_on_held_out_strokes(key):
         assert score > 1 / len(LEVELS), f"{model_key} is at or below chance"
 
 
-def test_deep_drawing_generalises_to_an_unseen_run():
-    """The claim the demo actually makes for deep drawing -- guard it."""
-    assert load_artifacts("deep_drawing").generalises(threshold=0.8)
+@pytest.mark.parametrize("key", STATION_KEYS)
+def test_the_centre_state_is_never_trained_on(key):
+    """The whole claim rests on the withheld state being genuinely withheld."""
+    data = load_station(key)
+    inside = data.stroke_index < min(WINDOWS)
+    trainable = set(np.unique(data.labels[inside])) - {CENTRE}
+    assert trainable == set(ENDPOINTS), "only the two endpoints may anchor the calibration"
 
 
-def test_ironing_does_not_generalise_to_an_unseen_run():
-    """The counterpart, kept as a test so the caveat on the overview stays truthful.
+@pytest.mark.parametrize("key", STATION_KEYS)
+def test_calibration_reports_every_variant_against_its_control(key):
+    calibration = load_artifacts(key).calibration
+    assert len(calibration.features) == N_FEATURES
+    for window in WINDOWS:
+        for budget in BUDGETS[window]:
+            # A budget of zero has no real strokes to fit a real-only model from.
+            expected = set(VARIANTS) if budget else {"mix", "shuffled-sim"}
+            present = {v for v in VARIANTS if calibration.at(window, budget, v) is not None}
+            assert present == expected, f"{key} {window}/{budget}"
 
-    If a future change makes ironing generalise, this fails loudly and the wording on the
-    overview page needs revisiting -- that is the point.
+
+def test_ironing_places_the_withheld_state_better_than_a_scrambled_sweep():
+    """The claim the Wear threshold page makes -- guard it, including the direction.
+
+    If a future change breaks the result, this fails loudly and the page's wording has to
+    be revisited rather than quietly becoming untrue.
     """
-    assert not load_artifacts("ironing").generalises(threshold=0.5)
+    calibration = load_artifacts("ironing").calibration
+    best = calibration.best()
+    assert best is not None
+    window, budget, p = best
+    assert p < 0.05
+    mix = calibration.at(window, budget, "mix")
+    control = calibration.at(window, budget, "shuffled-sim")
+    assert abs(mix.position - 0.5) < abs(control.position - 0.5)
 
 
 @pytest.mark.parametrize("key", STATION_KEYS)
@@ -106,6 +137,7 @@ def test_every_page_imports_and_has_a_layout():
         "/",
         "/deep-drawing",
         "/ironing",
+        "/wear-threshold",
         "/quality",
         "/help",
     }

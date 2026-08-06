@@ -105,58 +105,53 @@ Measured on the actual data, not rounded up:
 |---|---|---|---|---|---|---|---|---|
 | | LogReg | Forest | CNN | Hybrid | LogReg | Forest | CNN | Hybrid |
 | **Held-out strokes** | 100.00% | 100.00% | 100.00% | 100.00% | 96.56% | 99.22% | 96.89% | 99.11% |
-| **Unseen run** | 100.00% | 99.62% | 99.91% | 100.00% | 31.13% | 25.49% | 31.47% | 32.51% |
 
 *Held-out strokes* trains on strokes 0–399 of every run and tests on the rest. That is the split
-the deployed model uses, and it measures monitoring a tool that has already been characterised.
+the deployed model uses, and every wear level appears in training — so it measures monitoring a
+tool that has already been characterised, not recognising a state the model has never met.
 
-*Unseen run* withholds an entire production run and trains on the other eight. It is the honest
-test of whether the wear state itself is being recognised rather than the run it came from.
+Those are not the same question, and the second one is the one production actually asks.
 
-**Deep drawing passes both. Ironing passes only the first** — on an unseen run it sits at the 33.33%
-chance level, so its high held-out score reflects run identity, not wear. This is consistent with
-the project's own finding that the ironing signal is substantially harder than the deep drawing
-one, and the dashboard says so on the overview page rather than showing the flattering number
-alone. `tests/test_pipeline.py` pins both results, so if either changes the tests fail and the
-wording has to be revisited.
+## Locating the state nobody can label
 
-### Ironing fails this split for a specific reason
+A tool does not step from good to scrap. It crosses a threshold where parts are still in tolerance
+but the surface is going, and that is the state worth catching. It is also the one state that
+cannot be put in a training set: wear passes through it uncontrolled, and the press cannot be held
+there long enough to collect labelled strokes.
 
-Not for lack of signal. Under *unseen run* the withheld combination — say A1·T3 — leaves the two
-other runs at the same upstream T in the training set, carrying **different** ironing labels. The
-model matches the test strokes to those neighbours and answers with their label: A1 is called A2
-1051 times out of 1500, A2 is called A1 1056 times. That is a confound, not ignorance.
+So the **Wear threshold** page withholds it. The intermediate level is taken out of training
+entirely; what remains is a pristine tool, a heavily worn one, and the FE friction sweep that spans
+the middle continuously — 11 simulated deep-drawing curves and 33 ironing ones, already in
+`data/curves.npz`. A Gaussian process maps curve descriptors to the friction coefficient using the
+sweep alone, a second GP corrects it against a handful of real endpoint strokes, and their sum
+places any measured stroke on the friction axis. The withheld state should land midway between the
+two anchors: **0 is the pristine anchor, 1 the worn one, 0.5 exactly centred.**
 
-The obvious repair does not work. Deep drawing predicts its own state at 99.6–100% on an unseen run,
-and `data/curves.npz` holds both stations row for row from the same press stroke, so the upstream
-state really is available at prediction time. Handing it to the ironing model — appended as the
-three predicted T probabilities, or subtracted from the descriptors as a fitted T-effect — makes the
-split worse rather than better:
+Two controls decide whether a placement means anything. *Shuffled sweep* refits the prior on
+permuted friction labels — same curves, no physical ordering — which is what separates a real
+result from "any prior interpolates between two anchors". *Real endpoints only* drops the sweep
+altogether, isolating what the simulation itself contributes.
 
-| variant | unseen run |
-|---|---|
-| ironing descriptors alone | 31.13% (p = 0.36) |
-| variance and draw-down only | 39.24% (p = 0.18) |
-| + predicted upstream T | 17.56% |
-| upstream T-effect removed | 17.96% |
+| stage | best configuration | withheld state placed at | shuffled sweep | real endpoints only | p |
+|---|---|---|---|---|---|
+| Deep drawing (T2) | whole run, 25 strokes/endpoint | **0.410** | 0.618 | 0.646 | 0.0041 |
+| Ironing (A2) | first 20 strokes, 10 strokes/endpoint | **0.332** | 0.240 | 0.239 | <0.0001 |
 
-Both chained variants land *below* the 33.33% chance level, so their permutation p-values (0.62 and
-0.60 against a null of 200 relabelled runs) only confirm there is nothing there to test. Told T = t
-outright, the model picks a neighbouring A level with more confidence, because at T = t those are
-the only labels it has ever seen — the same confound, sharpened. That subtracting the effect fails
-too says the additive reading `x ≈ μ + α(A) + β(T)` does not hold here. The chain itself is sound:
-the upstream model scores 100% on every held-out run, which the script prints as its own check.
+Both beat their control, and in both cases the control sits almost exactly on top of the
+simulation-free baseline — the sweep is what moves the estimate, not the two real anchors.
 
-The null is wide — 24–27% ± 15 — because nine runs is not many, which is why no point estimate here
-carries much on its own. `scripts/ironing_protocols.py` reproduces the table.
+**Read it narrowly.** Neither stage lands *on* 0.5, most window and budget combinations do not
+separate from the control at all, and a placement on a friction axis is not a wear label: it says
+the withheld state falls between the anchors, not that a given stroke can be classified. Ironing
+also needs a cut the deep-drawing signal does not — its trace superimposes the upstream
+deep-drawing die's response on its own, so a descriptor can track ironing friction in simulation
+while its real variation follows the upstream state instead. Only descriptors whose simulated and
+measured behaviour agree on which axis they follow survive; 9 of 67 do.
 
-The limit is in the design as much as in the signal. The campaign ran exactly one production run per
-A·T cell — nine runs, 500 strokes each, no replicates — so at a fixed upstream state there is no
-second run of the same ironing level to learn from, and withholding a run withholds a whole cell.
-Under those conditions the protocol cannot separate wear from run identity, whatever the force curve
-contains. The dashboard keeps showing it because it is the harder question and the number is
-reported as measured; what it bounds is this protocol on this design, which is not the same as
-saying the ironing force carries nothing.
+Restricting to early strokes matters because the die beds in: as a block runs, the surface smooths
+back towards the fresh state, so late strokes carry a wear label their force curve no longer
+supports. `tests/test_pipeline.py` pins the ironing result, including its direction, so if a future
+change breaks it the tests fail rather than the page quietly becoming untrue.
 
 ## Background
 
@@ -173,15 +168,15 @@ src/spp2422_demo/
   app.py             Dash shell: top bar, navigation, page container
   data.py            loads curves.npz, mu terciles, the train/test split
   features.py        handcrafted shape descriptors
-  models.py          the four classifiers behind one protocol
+  models.py          the four classifiers behind the held-out-stroke split
+  calibration.py     GP calibration: placing the withheld wear state on the sweep
   explain.py         occlusion sensitivity and integrated gradients
-  artifacts.py       trains, validates both ways, caches to data/models/
+  artifacts.py       trains, calibrates, caches to data/models/
   station_view.py    the wear page, shared by both forming stages
   pages/             one module per route, discovered by Dash
   components/        figures, cards, the alert
   assets/            stylesheet and the CAD animation of the die
 scripts/extract_data.py       rebuilds data/curves.npz from the research pipeline
-scripts/ironing_protocols.py  the chaining experiments behind the ironing caveat
 compose.yaml                  one-command start on a machine that only has Docker
 ```
 

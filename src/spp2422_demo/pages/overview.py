@@ -12,8 +12,8 @@ from spp2422_demo.components.curve_figure import (
     level_means_figure,
     measured_vs_simulated_figure,
 )
-from spp2422_demo.components.layout import caveat, page_header, panel, percent, stat_card
-from spp2422_demo.data import LEVELS, STATIONS
+from spp2422_demo.components.layout import caveat, page_header, panel, stat_card
+from spp2422_demo.data import STATIONS
 
 dash.register_page(__name__, path="/", name="Overview", order=0)
 
@@ -38,14 +38,21 @@ def _curves(active_tab):
     )
 
 
+def _placement(calibration) -> str:
+    """The withheld state's best placement, or a dash where nothing beat the control."""
+    best = calibration.best()
+    if best is None:
+        return "—"
+    window, budget, _ = best
+    return f"{calibration.at(window, budget, 'mix').position:.3f}"
+
+
 def layout(**_kwargs):
     stations = {key: load_artifacts(key) for key in STATIONS}
     deep_drawing, ironing = stations["deep_drawing"], stations["ironing"]
     total_strokes = len(deep_drawing.data.curves)
     n_runs = len(deep_drawing.data.runs())
     n_simulated = len(deep_drawing.data.sim_curves) + len(ironing.data.sim_curves)
-
-    best = {key: max(trained.run_accuracy.values()) for key, trained in stations.items()}
 
     return html.Div(
         [
@@ -72,21 +79,17 @@ def layout(**_kwargs):
                         ),
                         md=3,
                     ),
-                    dbc.Col(
-                        stat_card(
-                            "Deep drawing",
-                            percent(best["deep_drawing"]),
-                            "accuracy on a production run never seen in training",
-                        ),
-                        md=3,
-                    ),
-                    dbc.Col(
-                        stat_card(
-                            "Ironing",
-                            percent(best["ironing"]),
-                            "accuracy on a production run never seen in training",
-                        ),
-                        md=3,
+                    *(
+                        dbc.Col(
+                            stat_card(
+                                trained.data.station.name,
+                                _placement(trained.calibration),
+                                "where the withheld wear state lands between the two "
+                                "measured extremes; 0.5 is centred",
+                            ),
+                            md=3,
+                        )
+                        for trained in stations.values()
                     ),
                 ],
                 className="g-4 mb-4",
@@ -153,9 +156,7 @@ def layout(**_kwargs):
                         panel(
                             f"{trained.data.station.name}: how well the models read it",
                             dcc.Graph(
-                                figure=accuracy_figure(
-                                    trained.models, trained.accuracy, trained.run_accuracy
-                                ),
+                                figure=accuracy_figure(trained.models, trained.accuracy),
                                 config={"displayModeBar": False},
                             ),
                         ),
@@ -167,21 +168,19 @@ def layout(**_kwargs):
             ),
             caveat(
                 [
-                    html.Strong("The two bars answer different questions. "),
+                    html.Strong("Read these as monitoring, not as recognition. "),
                     html.Span(
-                        "“Held-out strokes” keeps later strokes of runs the model already "
-                        "trained on — it measures monitoring a tool that has been characterised. "
-                        "“Unseen run” withholds a whole production run, which is the honest test "
-                        "of whether the wear state itself is being recognised. Deep drawing "
-                        "passes both. "
+                        "Every wear level appears in training here, and later strokes of the "
+                        "same runs are held back to score against — which is what a deployed "
+                        "model actually faces once its tool has been characterised. It is not "
+                        "evidence that a state the model has never been shown would be placed "
+                        "correctly. "
                     ),
-                    html.Strong("Ironing passes only the first: "),
+                    html.Strong("That question has its own page: "),
                     html.Span(
-                        f"on an unseen run it drops to {percent(best['ironing'])}, at or below "
-                        f"the {percent(1 / len(LEVELS))} chance level, so its high held-out "
-                        "score reflects run identity "
-                        "rather than wear. That matches the project's own finding that the "
-                        "ironing signal is substantially harder than the deep drawing one."
+                        "Wear threshold withholds the intermediate state altogether and asks "
+                        f"whether the {n_simulated} simulated curves can put it back between "
+                        "the two measured extremes."
                     ),
                 ]
             ),

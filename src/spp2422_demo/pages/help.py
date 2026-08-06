@@ -10,7 +10,7 @@ from dash import html
 
 from spp2422_demo.components.layout import caveat, page_header, panel
 
-dash.register_page(__name__, path="/help", name="Help", order=4)
+dash.register_page(__name__, path="/help", name="Help", order=5)
 
 PROJECT_URL = "https://www.ifu.uni-stuttgart.de/spp-2422/teilprojekte/teilprojekt-3/"
 PUBLICATIONS_URL = "https://www.ifu.uni-stuttgart.de/spp-2422/publikationen/"
@@ -203,10 +203,23 @@ GLOSSARY = [
         "it also means the y-axis carries no kN.",
     ),
     (
-        "Held-out strokes vs. unseen run",
-        "Two accuracies, two questions. Held-out strokes keeps later strokes of runs the model "
-        "has already seen — monitoring a characterised tool. Unseen run withholds a whole "
-        "production run — recognising wear on a tool the model has never met.",
+        "Held-out strokes",
+        "The split behind every accuracy on the station pages: train on the first 400 strokes "
+        "of each production run, score on the rest. Every wear level is in training, so this "
+        "measures monitoring a tool that has already been characterised.",
+    ),
+    (
+        "The withheld centre state",
+        "The harder question, on the Wear threshold page. The intermediate wear level is taken "
+        "out of training entirely — as it is in production, where a tool crosses that threshold "
+        "uncontrolled — and the simulated friction sweep has to place it between the two "
+        "measured extremes. 0.5 would be exactly centred.",
+    ),
+    (
+        "Shuffled sweep",
+        "The control that decides whether a placement means anything: the same simulated curves "
+        "with their friction ordering scrambled. Beating it is what separates a physically "
+        "grounded result from a model that merely interpolates between two anchors.",
     ),
     (
         "The explanation panel",
