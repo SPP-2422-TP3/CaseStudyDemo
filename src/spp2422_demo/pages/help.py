@@ -19,6 +19,12 @@ PUBLICATIONS_URL = "https://www.ifu.uni-stuttgart.de/spp-2422/publikationen/"
 TEAM = ["Moske", "Schumann", "Wüst", "Divo", "Kersting", "Groche"]
 
 PEOPLE = [
+    (
+        "Peter Groche",
+        "PtU · Lead",
+        "https://www.ptu.tu-darmstadt.de/institut_3/mitarbeiterinnen_3/details_3853.en.jsp",
+    ),
+    ("Kristian Kersting", "AI/ML Lab · Lead", "https://ml-research.github.io/people/kkersting/"),
     ("Jonas Moske", "PtU", "https://www.researchgate.net/profile/Jonas-Moske"),
     ("Markus Schumann", "PtU", "https://www.researchgate.net/profile/Markus_Schumann"),
     ("Antonia Wüst", "AI/ML Lab", "https://scholar.google.com/citations?user=BltylusAAAAJ"),
@@ -289,8 +295,7 @@ def layout(**_kwargs):
                                             "It pairs the Institute for Production Engineering "
                                             "and Forming Machines (PtU) with the Artificial "
                                             "Intelligence and Machine Learning Lab, both at "
-                                            "TU Darmstadt, under Peter Groche and "
-                                            "Kristian Kersting.",
+                                            "TU Darmstadt.",
                                         ]
                                     ),
                                     dbc.Row(
