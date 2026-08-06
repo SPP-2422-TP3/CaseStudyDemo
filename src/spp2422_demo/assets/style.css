@@ -181,6 +181,87 @@ body {
   color: var(--muted);
 }
 
+/* ---- help page -------------------------------------------------------- */
+
+.glossary-item + .glossary-item {
+  margin-top: 0.9rem;
+  border-top: 1px solid var(--line);
+  padding-top: 0.9rem;
+}
+
+.glossary-term {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.glossary-text {
+  color: var(--muted);
+  font-size: 0.88rem;
+}
+
+.person {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.5rem 0.7rem;
+  height: 100%;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+
+.person:hover {
+  border-color: var(--accent);
+  background: #f7fbfe;
+  color: inherit;
+}
+
+.person-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.paper + .paper {
+  margin-top: 1rem;
+  border-top: 1px solid var(--line);
+  padding-top: 1rem;
+}
+
+.paper-title {
+  display: block;
+  font-weight: 600;
+  font-size: 0.98rem;
+  line-height: 1.35;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.paper-title:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.paper-authors {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-top: 0.2rem;
+}
+
+.paper-authors strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.paper-venue {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.paper-why {
+  font-size: 0.88rem;
+  margin-top: 0.4rem;
+}
+
 /* ---- misc ------------------------------------------------------------- */
 
 .form-label {

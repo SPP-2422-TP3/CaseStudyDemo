@@ -13,14 +13,22 @@ sensor. The demo shows what those signals reveal about the condition of the tool
   models, and see the predicted wear state. A predicted critical state raises an alert, and the
   prediction can be opened up to show which part of the stroke the model actually read.
 - **Product quality** — placeholder for the strip-misalignment work, contributed separately.
+- **Help** — how to read the dashboard, and the papers behind it.
+
+## Run it
+
+On a machine with nothing but Docker installed:
 
 ```bash
-uv sync
-uv run spp2422-demo          # http://127.0.0.1:8050
+git clone https://github.com/SPP-2422-TP3/CaseStudyDemo.git && cd CaseStudyDemo && docker compose up
 ```
 
-The first start trains the models (under a minute) and caches them in `data/models/`. Force a
-rebuild with `uv run spp2422-demo prepare --force`.
+Then open <http://localhost:8050>. In VS Code, *Reopen in Container* does the same through
+`.devcontainer/`, and `uv run spp2422-demo` starts it. With [uv](https://docs.astral.sh/uv/)
+already installed, that one command is the whole story.
+
+The first start trains the models and caches them in `data/models/`; every later start is
+instant. Force a rebuild with `uv run spp2422-demo prepare --force`.
 
 ## The data
 
@@ -96,6 +104,14 @@ one, and the dashboard says so on the overview page rather than showing the flat
 alone. `tests/test_pipeline.py` pins both results, so if either changes the tests fail and the
 wording has to be revisited.
 
+## Background
+
+Each content pillar rests on a publication of the project: force-based process state
+classification ([Schumann et al. 2026](https://doi.org/10.1007/s12666-026-03839-4)) and
+simulation-driven modelling of strip misalignment
+([Moske et al. 2025](https://doi.org/10.1088/1742-6596/3104/1/012058)). The **Help** page lists
+these and eight more, grouped by what they contribute.
+
 ## Layout
 
 ```
@@ -110,6 +126,7 @@ src/spp2422_demo/
   pages/             one module per route, discovered by Dash
   components/        figures, cards, the process diagram, the alert
 scripts/extract_data.py   rebuilds data/curves.npz from the research pipeline
+compose.yaml              one-command start on a machine that only has Docker
 ```
 
 Development: `uv run ruff check .`, `uv run ruff format .`, `uv run pytest`.

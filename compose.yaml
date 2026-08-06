@@ -1,0 +1,10 @@
+services:
+  demo:
+    image: ghcr.io/astral-sh/uv:python3.13-bookworm-slim
+    working_dir: /app
+    volumes: [.:/app]
+    ports: ["8050:8050"]
+    # Keep the container's virtualenv out of the mounted repo so it cannot collide
+    # with a host .venv built for a different platform.
+    environment: [UV_PROJECT_ENVIRONMENT=/venv, UV_LINK_MODE=copy]
+    command: uv run --frozen spp2422-demo serve --host 0.0.0.0

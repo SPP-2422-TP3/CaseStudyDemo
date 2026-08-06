@@ -91,3 +91,23 @@ def test_attributions_cover_the_whole_stroke(key):
         assert np.isclose(np.abs(attribution.values).max(), 1.0)
         start, end = attribution.focus
         assert 0.0 <= start <= end <= 1.0
+
+
+def test_every_page_imports_and_has_a_layout():
+    """Dash imports page modules from their file path, which breaks constructs that expect
+    the module in `sys.modules`. It does so lazily at server start, so without this the
+    first symptom is a stack trace instead of a dashboard."""
+    import dash
+
+    from spp2422_demo.app import app  # noqa: F401  -- importing builds the app
+
+    pages = dash.page_registry
+    assert {page["path"] for page in pages.values()} == {
+        "/",
+        "/deep-drawing",
+        "/ironing",
+        "/quality",
+        "/help",
+    }
+    for page in pages.values():
+        assert callable(page["layout"])
