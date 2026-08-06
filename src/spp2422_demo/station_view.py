@@ -368,13 +368,22 @@ def toggle_stream(_, disabled):
     Output(alert_id(MATCH, "modal"), "is_open", allow_duplicate=True),
     Input(_id(MATCH, "explain-button"), "n_clicks"),
     Input(alert_id(MATCH, "explain"), "n_clicks"),
-    State(_id(MATCH, "model-select"), "value"),
-    State(_id(MATCH, "run-select"), "value"),
-    State(_id(MATCH, "stroke-slider"), "value"),
+    Input(_id(MATCH, "model-select"), "value"),
+    Input(_id(MATCH, "run-select"), "value"),
+    Input(_id(MATCH, "stroke-slider"), "value"),
+    State(_id(MATCH, "explain-collapse"), "is_open"),
     prevent_initial_call=True,
 )
-def show_explanation(_page_click, _modal_click, model_key, run_value, stroke):
-    """Attribute the current prediction over event time, and close the alert behind it."""
+def show_explanation(_page_click, _modal_click, model_key, run_value, stroke, is_open):
+    """Attribute the current prediction over event time, and close the alert behind it.
+
+    Also fires when the model, run or stroke changes, so an open panel never explains a
+    prediction that is no longer on screen -- but only then, since opening it is what the
+    two buttons are for.
+    """
+    clicked = (ctx.triggered_id or {}).get("type") in {"explain-button", "alert-explain"}
+    if not clicked and not is_open:
+        return no_update, no_update, no_update, no_update
     # Imported here so the figure module is not a hard dependency of the layout import.
     from .components.curve_figure import attribution_figure
 
@@ -401,7 +410,14 @@ def show_explanation(_page_click, _modal_click, model_key, run_value, stroke):
             ),
         ]
     )
-    return True, attribution_figure(data, index, attribution), summary, False
+    # Only a click dismisses the alert behind the panel: a refresh must not close a modal
+    # that the new stroke has just raised.
+    return (
+        True,
+        attribution_figure(data, index, attribution),
+        summary,
+        False if clicked else no_update,
+    )
 
 
 @callback(
