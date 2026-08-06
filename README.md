@@ -145,3 +145,7 @@ compose.yaml              one-command start on a machine that only has Docker
 ```
 
 Development: `uv run ruff check .`, `uv run ruff format .`, `uv run pytest`.
+
+## Licence
+
+MIT — © 2026 Felix Divo, Antonia Wüst, Jonas Moske and Markus Schumann.

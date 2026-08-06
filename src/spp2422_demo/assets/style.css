@@ -8,6 +8,7 @@
   --fresh: #1b9e77;
   --worn: #e6a400;
   --critical: #d6453d;
+  --external-link: url("data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'%20fill='none'%20stroke='%23000'%20stroke-width='2.5'%20stroke-linecap='round'%20stroke-linejoin='round'%3E%3Cpath%20d='M18%2013v6a2%202%200%200%201-2%202H5a2%202%200%200%201-2-2V8a2%202%200%200%201%202-2h6'/%3E%3Cpolyline%20points='15%203%2021%203%2021%209'/%3E%3Cline%20x1='10'%20y1='14'%20x2='21'%20y2='3'/%3E%3C/svg%3E");
 }
 
 body {
@@ -239,19 +240,39 @@ body {
 
 .person {
   display: block;
+  position: relative;
   text-decoration: none;
   color: inherit;
   border: 1px solid var(--line);
   border-radius: 8px;
-  padding: 0.5rem 0.7rem;
+  padding: 0.5rem 1.8rem 0.5rem 0.7rem;
   height: 100%;
   transition: border-color 0.12s ease, background 0.12s ease;
+}
+
+/* The "opens elsewhere" mark, as a mask so it takes its colour from the box state
+   rather than shipping two coloured copies of the same glyph. */
+.person::after {
+  content: "";
+  position: absolute;
+  top: 0.6rem;
+  right: 0.65rem;
+  width: 0.72rem;
+  height: 0.72rem;
+  background: var(--muted);
+  transition: background 0.12s ease;
+  -webkit-mask: var(--external-link) no-repeat center / contain;
+  mask: var(--external-link) no-repeat center / contain;
 }
 
 .person:hover {
   border-color: var(--accent);
   background: #f7fbfe;
   color: inherit;
+}
+
+.person:hover::after {
+  background: var(--accent);
 }
 
 .person-name {
@@ -298,6 +319,15 @@ body {
 .paper-why {
   font-size: 0.88rem;
   margin-top: 0.4rem;
+}
+
+.colophon {
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+  text-align: center;
+  font-size: 0.82rem;
+  color: var(--muted);
 }
 
 /* ---- misc ------------------------------------------------------------- */

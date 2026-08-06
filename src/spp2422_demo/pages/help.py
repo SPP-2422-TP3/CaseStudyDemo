@@ -14,6 +14,9 @@ dash.register_page(__name__, path="/help", name="Help", order=4)
 
 PROJECT_URL = "https://www.ifu.uni-stuttgart.de/spp-2422/teilprojekte/teilprojekt-3/"
 PUBLICATIONS_URL = "https://www.ifu.uni-stuttgart.de/spp-2422/publikationen/"
+REPO_URL = "https://github.com/SPP-2422-TP3/CaseStudyDemo"
+LICENSE_URL = f"{REPO_URL}/blob/main/LICENSE"
+AUTHORS = "Felix Divo, Antonia Wüst, Jonas Moske and Markus Schumann"
 
 # The people carrying Teilprojekt 3; their names are highlighted in the author lists below.
 TEAM = ["Moske", "Schumann", "Wüst", "Divo", "Kersting", "Groche"]
@@ -304,7 +307,6 @@ def layout(**_kwargs):
                                     ),
                                 ]
                             ),
-                            note="Names link to the researchers' public profiles.",
                         ),
                         lg=5,
                     ),
@@ -332,6 +334,15 @@ def layout(**_kwargs):
                     ),
                     html.Span(" covers every Teilprojekt in the programme."),
                 ]
+            ),
+            html.Div(
+                [
+                    html.A("Source on GitHub", href=REPO_URL, target="_blank"),
+                    " · ",
+                    html.A("MIT licence", href=LICENSE_URL, target="_blank"),
+                    " · © 2026 " + AUTHORS,
+                ],
+                className="colophon",
             ),
         ]
     )
