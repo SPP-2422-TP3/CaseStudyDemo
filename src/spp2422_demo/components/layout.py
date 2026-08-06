@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import math
-
 import dash_bootstrap_components as dbc
 from dash import html
 
@@ -11,16 +9,12 @@ from ..theme import LEVEL_NAMES
 
 
 def percent(value: float) -> str:
-    """A share as a percentage, whole numbers, never rounded up to a clean 100%.
+    """A measured share as a percentage, to two decimals.
 
-    99.96% is not 100%, and the argument this dashboard makes rests on not flattering
-    its own numbers -- so just below the top the decimal is kept and truncated.
+    Every accuracy in the interface goes through here. 99.96% is not 100%, and the
+    argument this dashboard makes rests on not flattering its own numbers.
     """
-    if value >= 1:
-        return "100%"
-    if value >= 0.995:
-        return f"{math.floor(value * 1000) / 10:.1f}%"
-    return f"{value:.0%}"
+    return f"{value:.2%}"
 
 
 def stat_card(title: str, value: str, unit: str = "") -> dbc.Card:

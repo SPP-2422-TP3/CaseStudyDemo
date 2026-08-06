@@ -102,8 +102,8 @@ Measured on the actual data, not rounded up:
 | | Deep drawing (T) | | | Ironing (A) | | |
 |---|---|---|---|---|---|---|
 | | LogReg | Forest | CNN | LogReg | Forest | CNN |
-| **Held-out strokes** | 100% | 100% | 100% | 94% | 99% | 98% |
-| **Unseen run** | 99.5% | 99.6% | 99.9% | 31% | 27% | 32% |
+| **Held-out strokes** | 100.00% | 100.00% | 100.00% | 94.44% | 98.56% | 98.11% |
+| **Unseen run** | 99.56% | 99.62% | 99.96% | 30.93% | 26.62% | 32.49% |
 
 *Held-out strokes* trains on strokes 0–399 of every run and tests on the rest. That is the split
 the deployed model uses, and it measures monitoring a tool that has already been characterised.
@@ -111,7 +111,7 @@ the deployed model uses, and it measures monitoring a tool that has already been
 *Unseen run* withholds an entire production run and trains on the other eight. It is the honest
 test of whether the wear state itself is being recognised rather than the run it came from.
 
-**Deep drawing passes both. Ironing passes only the first** — on an unseen run it sits at the 33%
+**Deep drawing passes both. Ironing passes only the first** — on an unseen run it sits at the 33.33%
 chance level, so its high held-out score reflects run identity, not wear. This is consistent with
 the project's own finding that the ironing signal is substantially harder than the deep drawing
 one, and the dashboard says so on the overview page rather than showing the flattering number

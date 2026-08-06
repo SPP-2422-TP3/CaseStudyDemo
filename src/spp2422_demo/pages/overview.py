@@ -14,7 +14,7 @@ from spp2422_demo.components.curve_figure import (
 )
 from spp2422_demo.components.layout import caveat, page_header, panel, percent, stat_card
 from spp2422_demo.components.process import process_diagram
-from spp2422_demo.data import STATIONS
+from spp2422_demo.data import LEVELS, STATIONS
 
 dash.register_page(__name__, path="/", name="Overview", order=0)
 
@@ -166,8 +166,9 @@ def layout(**_kwargs):
                     ),
                     html.Strong("Ironing passes only the first: "),
                     html.Span(
-                        f"on an unseen run it drops to {percent(best['ironing'])}, at or below the "
-                        "33% chance level, so its high held-out score reflects run identity "
+                        f"on an unseen run it drops to {percent(best['ironing'])}, at or below "
+                        f"the {percent(1 / len(LEVELS))} chance level, so its high held-out "
+                        "score reflects run identity "
                         "rather than wear. That matches the project's own finding that the "
                         "ironing signal is substantially harder than the deep drawing one."
                     ),
