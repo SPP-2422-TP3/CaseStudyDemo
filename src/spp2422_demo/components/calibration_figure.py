@@ -2,20 +2,32 @@
 
 from __future__ import annotations
 
+from typing import NamedTuple
+
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
 from ..calibration import BUDGETS, WINDOWS, Calibration
 from ..theme import MUTED, OKABE_ITO
 
+
+class Series(NamedTuple):
+    """How one variant is drawn. Named rather than a bare tuple: the page reads this too,
+    and positional unpacking silently breaks the moment a field is added."""
+
+    label: str
+    color: str
+    symbol: str
+
+
 # Fixed, never cycled: the result, its control, and the simulation-free baseline. Each
 # carries a marker shape as well as a hue -- the control and the real-only baseline land
 # on top of each other at most budgets, which is itself the finding, and colour alone
 # would leave the overlap unreadable.
 SERIES = {
-    "mix": ("Sweep + real endpoints", OKABE_ITO[0], "circle"),
-    "shuffled-sim": ("Shuffled sweep (control)", OKABE_ITO[1], "square"),
-    "real-only": ("Real endpoints only", OKABE_ITO[2], "diamond-open"),
+    "mix": Series("Sweep + real endpoints", OKABE_ITO[0], "circle"),
+    "shuffled-sim": Series("Shuffled sweep (control)", OKABE_ITO[1], "square"),
+    "real-only": Series("Real endpoints only", OKABE_ITO[2], "diamond-open"),
 }
 
 
@@ -36,7 +48,7 @@ def placement_figure(calibration: Calibration) -> go.Figure:
         # table, where a number can be read as degenerate; on the plot it only wrecks the
         # scale for every other point.
         budgets = [b for b in BUDGETS[window] if b > 0]
-        for variant, (label, color, symbol) in SERIES.items():
+        for variant, series in SERIES.items():
             points = [(b, calibration.at(window, b, variant)) for b in budgets]
             points = [(b, p) for b, p in points if p is not None]
             if not points:
@@ -48,18 +60,18 @@ def placement_figure(calibration: Calibration) -> go.Figure:
                     error_y={
                         "type": "data",
                         "array": [p.spread for _, p in points],
-                        "color": color,
+                        "color": series.color,
                         "thickness": 1,
                         "width": 3,
                     },
                     mode="lines+markers",
-                    name=label,
+                    name=series.label,
                     legendgroup=variant,
                     showlegend=column == 1,
-                    line={"color": color, "width": 2},
-                    marker={"color": color, "size": 9, "symbol": symbol},
+                    line={"color": series.color, "width": 2},
+                    marker={"color": series.color, "size": 9, "symbol": series.symbol},
                     hovertemplate=(
-                        f"<b>{label}</b><br>%{{x}} real strokes per endpoint"
+                        f"<b>{series.label}</b><br>%{{x}} real strokes per endpoint"
                         "<br>position %{y:.3f}<extra></extra>"
                     ),
                 ),

@@ -143,3 +143,18 @@ def test_every_page_imports_and_has_a_layout():
     }
     for page in pages.values():
         assert callable(page["layout"])
+        page["layout"]()
+
+
+@pytest.mark.parametrize("key", STATION_KEYS)
+def test_the_wear_threshold_body_renders(key):
+    """Building the layout is not enough -- the page's content comes from a callback, and
+    a mismatch between it and the figure module only shows up when that callback runs."""
+    import sys
+
+    from spp2422_demo.app import app  # noqa: F401  -- importing registers the pages
+
+    # Dash imports page modules by file path, so they land under "pages.", not the package.
+    page = sys.modules["pages.wear_threshold"]
+    body = page._body(key)
+    assert body.children, f"{key} rendered an empty body"

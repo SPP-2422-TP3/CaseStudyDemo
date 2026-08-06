@@ -136,7 +136,7 @@ def _table(calibration, window: int) -> dbc.Table:
     header = html.Thead(
         html.Tr(
             [html.Th("Real strokes per endpoint")]
-            + [html.Th(label) for label, _ in SERIES.values()]
+            + [html.Th(series.label) for series in SERIES.values()]
             + [html.Th("p vs. control")]
         )
     )
