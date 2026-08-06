@@ -128,9 +128,18 @@ model matches the test strokes to those neighbours and answers with their label:
 1051 times out of 1500, A2 is called A1 1056 times. That is a confound, not ignorance.
 
 Group the folds by upstream state instead — withhold all three runs of one T, train on the six at
-the other two — and the same features reach **56.00%**. `scripts/ironing_protocols.py` reproduces
-both protocols and tests each against relabelled runs. The dashboard keeps reporting leave-one-run-out
-because it is the harder question, but the honest reading is "not under this protocol", not "never".
+the other two — and the same features reach **56.00%**. Against a null of 200 runs relabelled at
+random, only the T-grouped result survives:
+
+| | leave one run out | leave one upstream T out |
+|---|---|---|
+| all descriptors | 31.13% (p = 0.36) | **56.00%** (p = 0.025) |
+| variance and draw-down only | 39.24% (p = 0.18) | **55.76%** (p = 0.020) |
+
+The null is wide — 25–27% ± 15 — because nine runs is not many, which is exactly why the point
+estimate alone would not have been worth reporting. `scripts/ironing_protocols.py` reproduces the
+table. The dashboard keeps showing leave-one-run-out because it is the harder question, but the
+honest reading of it is "not under this protocol", not "never".
 
 ## Background
 
