@@ -1,4 +1,4 @@
-"""Ironing (Abstreckgleitziehen) wear state, A1 to A3."""
+"""Ironing wear state, A1 to A3."""
 
 from __future__ import annotations
 

@@ -134,7 +134,7 @@ def prepare(force: bool = False) -> None:
     for key, station in STATIONS.items():
         trained = load_artifacts(key)
         held_out = int((~trained.data.train_mask).sum())
-        print(f"\n==> {station.name} ({station.german}), {held_out} held-out strokes")
+        print(f"\n==> {station.name}, {held_out} held-out strokes")
         print(f"    {'':22s} {'held-out':>10s} {'unseen run':>12s}")
         for model_key in trained.models:
             print(

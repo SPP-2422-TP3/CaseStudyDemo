@@ -12,9 +12,9 @@ from dash import html
 from ..theme import GRID, INK, MUTED, OKABE_ITO
 
 _STAGES = [
-    ("Shear cutting", "Scherschneiden", "#9AA7B5", False),
-    ("Deep drawing", "Tiefziehen", OKABE_ITO[0], True),
-    ("Ironing", "Abstreckgleitziehen", OKABE_ITO[1], True),
+    ("Shear cutting", "#9AA7B5", False),
+    ("Deep drawing", OKABE_ITO[0], True),
+    ("Ironing", OKABE_ITO[1], True),
 ]
 
 
@@ -26,15 +26,15 @@ def _svg(tag: str, **attrs) -> str:
 
 def process_diagram() -> html.Div:
     """A left-to-right strip through three stations, the two modelled ones highlighted."""
-    width, height = 720, 172
+    width, height = 720, 160
     parts = [
         # The sheet strip running through every station.
-        _svg("rect", x=0, y=64, width=width, height=22, fill="#EDF1F6", rx=3),
+        _svg("rect", x=0, y=52, width=width, height=22, fill="#EDF1F6", rx=3),
         # Below the stations, so it never collides with a station box.
         _svg(
             "text",
             x=width / 2,
-            y=166,
+            y=154,
             fill=MUTED,
             font_size=11,
             text_anchor="middle",
@@ -43,13 +43,13 @@ def process_diagram() -> html.Div:
     ]
 
     slot = width / len(_STAGES)
-    for i, (name, german, color, modelled) in enumerate(_STAGES):
+    for i, (name, color, modelled) in enumerate(_STAGES):
         cx = slot * i + slot / 2
         parts += [
             _svg(
                 "rect",
                 x=cx - 52,
-                y=22,
+                y=10,
                 width=104,
                 height=106,
                 rx=8,
@@ -57,27 +57,18 @@ def process_diagram() -> html.Div:
                 stroke=color if modelled else GRID,
                 stroke_width=2 if modelled else 1,
             ),
-            _svg("rect", x=cx - 26, y=38, width=52, height=16, rx=2, fill=color),
-            _svg("rect", x=cx - 3, y=54, width=6, height=14, fill=color),
-            _svg("rect", x=cx - 26, y=88, width=52, height=16, rx=2, fill=color, opacity=0.55),
+            _svg("rect", x=cx - 26, y=26, width=52, height=16, rx=2, fill=color),
+            _svg("rect", x=cx - 3, y=42, width=6, height=14, fill=color),
+            _svg("rect", x=cx - 26, y=76, width=52, height=16, rx=2, fill=color, opacity=0.55),
             _svg(
                 "text",
                 x=cx,
-                y=118,
+                y=106,
                 fill=INK,
                 font_size=11.5,
                 font_weight=600,
                 text_anchor="middle",
                 _body=name,
-            ),
-            _svg(
-                "text",
-                x=cx,
-                y=17,
-                fill=MUTED,
-                font_size=10,
-                text_anchor="middle",
-                _body=german,
             ),
         ]
         if i < len(_STAGES) - 1:
@@ -85,7 +76,7 @@ def process_diagram() -> html.Div:
             parts.append(
                 _svg(
                     "path",
-                    d=f"M {arrow_x - 6} 75 l 12 0 m -5 -4 l 5 4 l -5 4",
+                    d=f"M {arrow_x - 6} 63 l 12 0 m -5 -4 l 5 4 l -5 4",
                     stroke=MUTED,
                     stroke_width=1.4,
                     fill="none",

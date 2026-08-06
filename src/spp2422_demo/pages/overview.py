@@ -19,12 +19,6 @@ from spp2422_demo.data import STATIONS
 dash.register_page(__name__, path="/", name="Overview", order=0)
 
 
-_LINKS = [
-    ("/deep-drawing", "Deep drawing", "Tiefziehen", "Wear state T1 – T3 from the drawing force."),
-    ("/ironing", "Ironing", "Abstreckgleitziehen", "Wear state A1 – A3 from the ironing force."),
-    ("/quality", "Product quality", "Bauteilqualität", "Strip misalignment — in preparation."),
-]
-
 MEASURED = "measured"
 SIMULATED = "simulated"
 
@@ -41,26 +35,6 @@ def _curves(active_tab):
     data = load_artifacts(ctx.outputs_list["id"]["station"]).data
     return (
         level_means_figure(data) if active_tab == MEASURED else measured_vs_simulated_figure(data)
-    )
-
-
-def _link_card(href: str, title: str, german: str, text: str) -> dbc.Col:
-    return dbc.Col(
-        html.A(
-            dbc.Card(
-                dbc.CardBody(
-                    [
-                        html.Div(german, className="card-title"),
-                        html.Div(title, style={"fontWeight": 600, "fontSize": "1.05rem"}),
-                        html.Div(text, className="section-note mt-1"),
-                    ]
-                ),
-                className="h-100",
-            ),
-            href=href,
-            className="link-card",
-        ),
-        md=4,
     )
 
 
@@ -198,10 +172,6 @@ def layout(**_kwargs):
                         "ironing signal is substantially harder than the deep drawing one."
                     ),
                 ]
-            ),
-            html.Div(
-                dbc.Row([_link_card(*link) for link in _LINKS], className="g-4"),
-                className="mt-4",
             ),
         ]
     )

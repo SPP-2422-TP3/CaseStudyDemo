@@ -5,9 +5,9 @@ A dashboard demo for an industrial colloquium, built on
 *Optimierung des Wirkflächendesigns schnelllaufender Folgeverbundwerkzeuge unter Nutzung
 maschineller Lernalgorithmen* (TU Darmstadt: PtU and the AI/ML Lab).
 
-One press stroke of a progressive die drives three stations — shear cutting, **deep drawing**
-(*Tiefziehen*) and **ironing** (*Abstreckgleitziehen*). Each forming station carries a force
-sensor. The demo shows what those signals reveal about the condition of the tools:
+One press stroke of a progressive die drives three stations — shear cutting, **deep drawing** and
+**ironing**. Each forming station carries a force sensor. The demo shows what those signals reveal
+about the condition of the tools:
 
 - **Deep drawing** and **Ironing** — pick a production run and a stroke, pick one of three
   models, and see the predicted wear state. A predicted critical state raises an alert, and the

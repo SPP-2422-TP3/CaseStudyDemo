@@ -32,7 +32,6 @@ class Station:
 
     key: str
     name: str
-    german: str
     label_key: str
     level_prefix: str
     curve_key: str
@@ -48,7 +47,6 @@ class Station:
 DEEP_DRAWING = Station(
     key="deep_drawing",
     name="Deep drawing",
-    german="Tiefziehen",
     label_key="T",
     level_prefix="T",
     curve_key="real_deep_drawing",
@@ -64,7 +62,6 @@ DEEP_DRAWING = Station(
 IRONING = Station(
     key="ironing",
     name="Ironing",
-    german="Abstreckgleitziehen",
     label_key="A",
     level_prefix="A",
     curve_key="real_ironing",

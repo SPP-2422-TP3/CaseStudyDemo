@@ -104,6 +104,22 @@ body {
   font-size: 0.82rem;
 }
 
+/* ---- buttons ----------------------------------------------------------- */
+
+/* Pausing the stream is a normal control, not a fault, so it uses the palette
+   amber rather than red -- and Bootstrap's own warning yellow is too pale to
+   read on white. */
+.btn-outline-warning {
+  --bs-btn-color: #9c6f00;
+  --bs-btn-border-color: var(--worn);
+  --bs-btn-hover-bg: var(--worn);
+  --bs-btn-hover-border-color: var(--worn);
+  --bs-btn-hover-color: #fff;
+  --bs-btn-active-bg: #cc9100;
+  --bs-btn-active-border-color: #cc9100;
+  --bs-btn-active-color: #fff;
+}
+
 /* ---- wear level badges ------------------------------------------------ */
 
 .level-badge {
@@ -271,20 +287,6 @@ body {
   text-transform: uppercase;
   color: var(--muted);
   margin-bottom: 0.3rem;
-}
-
-.link-card {
-  display: block;
-  text-decoration: none;
-  color: inherit;
-  height: 100%;
-  transition: transform 0.12s ease, box-shadow 0.12s ease;
-}
-
-.link-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgb(27 36 48 / 10%);
-  color: inherit;
 }
 
 .caveat {

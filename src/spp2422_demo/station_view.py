@@ -101,10 +101,7 @@ def layout(station_key: str) -> html.Div:
 
     return html.Div(
         [
-            page_header(
-                f"{station.name} — {station.german}",
-                station.description,
-            ),
+            page_header(station.name, station.description),
             dbc.Card(dbc.CardBody(controls), className="mb-4"),
             dbc.Row(
                 [
@@ -260,7 +257,7 @@ def advance_stream(_, stroke):
 )
 def toggle_stream(_, disabled):
     running = disabled  # the click flips it
-    return (not running, "■ Stop" if running else "▶ Stream", "danger" if running else "primary")
+    return (not running, "⏸ Pause" if running else "▶ Stream", "warning" if running else "primary")
 
 
 @callback(

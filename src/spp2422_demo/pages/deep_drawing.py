@@ -1,4 +1,4 @@
-"""Deep drawing (Tiefziehen) wear state, T1 to T3."""
+"""Deep drawing wear state, T1 to T3."""
 
 from __future__ import annotations
 
