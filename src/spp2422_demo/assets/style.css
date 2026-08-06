@@ -104,6 +104,17 @@ body {
   font-size: 0.82rem;
 }
 
+/* Capped and centred: at full container width the clip alone fills a laptop screen
+   and pushes the curves below the fold. */
+.tool-video {
+  display: block;
+  width: 100%;
+  max-width: 960px;
+  margin: 0 auto;
+  border-radius: 8px;
+  background: #eef1f6;
+}
+
 .about-label {
   font-size: 0.8rem;
   font-weight: 650;

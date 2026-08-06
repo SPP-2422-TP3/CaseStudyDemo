@@ -138,7 +138,8 @@ src/spp2422_demo/
   artifacts.py       trains, validates both ways, caches to data/models/
   station_view.py    the wear page, shared by both forming stages
   pages/             one module per route, discovered by Dash
-  components/        figures, cards, the process diagram, the alert
+  components/        figures, cards, the alert
+  assets/            stylesheet and the CAD animation of the die
 scripts/extract_data.py   rebuilds data/curves.npz from the research pipeline
 compose.yaml              one-command start on a machine that only has Docker
 ```

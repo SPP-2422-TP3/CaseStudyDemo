@@ -13,7 +13,6 @@ from spp2422_demo.components.curve_figure import (
     measured_vs_simulated_figure,
 )
 from spp2422_demo.components.layout import caveat, page_header, panel, percent, stat_card
-from spp2422_demo.components.process import process_diagram
 from spp2422_demo.data import LEVELS, STATIONS
 
 dash.register_page(__name__, path="/", name="Overview", order=0)
@@ -21,6 +20,7 @@ dash.register_page(__name__, path="/", name="Overview", order=0)
 
 MEASURED = "measured"
 SIMULATED = "simulated"
+TOOL_VIDEO = "tool_cad_animated.mp4"
 
 
 def _id(station_key: str, part: str) -> dict[str, str]:
@@ -95,10 +95,21 @@ def layout(**_kwargs):
                 dbc.Col(
                     panel(
                         "The process",
-                        process_diagram(),
+                        # Muted and inline are what let a browser autoplay this at all;
+                        # the controls are there for pausing it mid-talk.
+                        html.Video(
+                            src=dash.get_asset_url(TOOL_VIDEO),
+                            autoPlay=True,
+                            loop=True,
+                            muted=True,
+                            controls=True,
+                            playsInline=True,
+                            className="tool-video",
+                        ),
                         note=(
-                            "One press stroke drives all three stations. Each forming station "
-                            "carries its own force sensor; both signals are aligned on the cut."
+                            "The progressive die in motion. One press stroke drives all three "
+                            "stations; each forming station carries its own force sensor, and "
+                            "both signals are aligned on the cut."
                         ),
                     )
                 ),
