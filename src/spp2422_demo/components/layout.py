@@ -18,7 +18,11 @@ def percent(value: float) -> str:
 
 
 def stat_card(title: str, value: str, unit: str = "") -> dbc.Card:
-    """A headline number with a label above and a caption below."""
+    """A headline number with a label above and a caption below.
+
+    `h-100` so a card with a one-line caption still matches the height of its
+    neighbours, whose captions wrap.
+    """
     return dbc.Card(
         dbc.CardBody(
             [
@@ -26,7 +30,8 @@ def stat_card(title: str, value: str, unit: str = "") -> dbc.Card:
                 html.Div(value, className="stat-value"),
                 html.Div(unit, className="stat-unit"),
             ]
-        )
+        ),
+        className="h-100",
     )
 
 
