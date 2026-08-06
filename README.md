@@ -148,9 +148,15 @@ too says the additive reading `x ≈ μ + α(A) + β(T)` does not hold here. The
 the upstream model scores 100% on every held-out run, which the script prints as its own check.
 
 The null is wide — 24–27% ± 15 — because nine runs is not many, which is why no point estimate here
-carries much on its own. `scripts/ironing_protocols.py` reproduces the table. The dashboard keeps
-showing leave-one-run-out because it is the harder question; the confound is real, but nothing tried
-here lifts the number off chance, so the caveat stands as measured.
+carries much on its own. `scripts/ironing_protocols.py` reproduces the table.
+
+The limit is in the design as much as in the signal. The campaign ran exactly one production run per
+A·T cell — nine runs, 500 strokes each, no replicates — so at a fixed upstream state there is no
+second run of the same ironing level to learn from, and withholding a run withholds a whole cell.
+Under those conditions the protocol cannot separate wear from run identity, whatever the force curve
+contains. The dashboard keeps showing it because it is the harder question and the number is
+reported as measured; what it bounds is this protocol on this design, which is not the same as
+saying the ironing force carries nothing.
 
 ## Background
 
