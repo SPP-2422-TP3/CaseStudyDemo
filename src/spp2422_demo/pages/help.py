@@ -136,7 +136,8 @@ GROUPS: list[tuple[str, str, list[Paper]]] = [
     ),
     (
         "The machine learning side",
-        "Methods from the AI/ML Lab that shape how this demo explains and validates itself.",
+        "Work from the AI/ML Lab: how this demo explains and validates itself, and where the "
+        "group's time series modelling goes next.",
         [
             Paper(
                 "Right on Time: Revising Time Series Models by Constraining Their Explanations",
@@ -155,6 +156,25 @@ GROUPS: list[tuple[str, str, list[Paper]]] = [
                 "Why the accuracies on the overview page are reported twice: a model that keys on "
                 "which production run a stroke came from, rather than on wear, is exactly the "
                 "shortcut catalogued here.",
+            ),
+            Paper(
+                "xLSTM-Mixer: Multivariate Time Series Forecasting by Mixing via Scalar Memories",
+                "M. Kraus, F. Divo, D. S. Dhami, K. Kersting",
+                "NeurIPS 2025 · arXiv:2410.16928",
+                "10.48550/arXiv.2410.16928",
+                "Forecasting rather than classification, but the same underlying question: how to "
+                "carry a long signal through a model without flattening the time axis. The CNN "
+                "behind these pages is a deliberately small answer to it.",
+            ),
+            Paper(
+                "Exploring Neural Granger Causality with xLSTMs: Unveiling Temporal Dependencies "
+                "in Complex Data",
+                "H. Poonia, F. Divo, K. Kersting, D. S. Dhami",
+                "NeurIPS 2025 · arXiv:2502.09981",
+                "10.48550/arXiv.2502.09981",
+                "Recovering which signal drives which, over time. Deep drawing and ironing happen "
+                "in the same stroke on the same strip, so their force traces are anything but "
+                "independent.",
             ),
         ],
     ),
