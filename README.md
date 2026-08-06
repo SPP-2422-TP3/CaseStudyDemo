@@ -30,6 +30,20 @@ already installed, that one command is the whole story.
 The first start trains the models and caches them in `data/models/`; every later start is
 instant. Force a rebuild with `uv run spp2422-demo prepare --force`.
 
+## Show it on another machine
+
+A [Cloudflare quick tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/do-more-with-tunnels/trycloudflare/)
+puts the running server on a public URL without an account or any DNS setup:
+
+```bash
+curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o cloudflared && chmod +x cloudflared
+./cloudflared tunnel --url http://localhost:8050
+```
+
+It prints a `https://<random-words>.trycloudflare.com` address; open that from anywhere. The
+link is **unauthenticated** — anyone who has it reaches the dashboard — and it disappears when
+the process stops, so it suits a talk, not a deployment.
+
 ## The data
 
 `data/curves.npz` (8.9 MB, committed) holds everything the app needs:
