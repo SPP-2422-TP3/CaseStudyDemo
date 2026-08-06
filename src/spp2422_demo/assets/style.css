@@ -1,0 +1,216 @@
+:root {
+  --ink: #1b2430;
+  --muted: #6b7785;
+  --line: #e3e8ee;
+  --surface: #ffffff;
+  --canvas: #f5f7fa;
+  --accent: #0072b2;
+  --fresh: #1b9e77;
+  --worn: #e6a400;
+  --critical: #d6453d;
+}
+
+body {
+  background: var(--canvas);
+  color: var(--ink);
+  font-family: Inter, "Segoe UI", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---- top bar ---------------------------------------------------------- */
+
+.topbar {
+  background: var(--ink);
+  color: #fff;
+  padding: 0.85rem 0;
+  box-shadow: 0 1px 3px rgb(27 36 48 / 18%);
+}
+
+.topbar .brand {
+  font-size: 1.05rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.topbar .brand-sub {
+  color: #9fb0c4;
+  font-size: 0.8rem;
+  font-weight: 400;
+}
+
+.topbar .nav-link {
+  color: #c6d2e0;
+  border-radius: 6px;
+  padding: 0.3rem 0.75rem;
+  font-size: 0.9rem;
+}
+
+.topbar .nav-link:hover {
+  color: #fff;
+  background: rgb(255 255 255 / 8%);
+}
+
+.topbar .nav-link.active {
+  color: #fff;
+  background: rgb(255 255 255 / 14%);
+  font-weight: 500;
+}
+
+/* ---- cards ------------------------------------------------------------ */
+
+.card {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: 0 1px 2px rgb(27 36 48 / 4%);
+}
+
+.card-title {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.6rem;
+}
+
+.stat-value {
+  font-size: 1.9rem;
+  font-weight: 650;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.stat-unit {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-top: 0.15rem;
+}
+
+.page-title {
+  font-size: 1.5rem;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  margin-bottom: 0.1rem;
+}
+
+.page-subtitle {
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.section-note {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+/* ---- wear level badges ------------------------------------------------ */
+
+.level-badge {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  border-radius: 8px;
+  padding: 0.45rem 0.9rem;
+  font-weight: 600;
+  color: #fff;
+}
+
+.level-badge .level-code {
+  font-size: 1.35rem;
+  letter-spacing: -0.01em;
+}
+
+.level-1 { background: var(--fresh); }
+.level-2 { background: var(--worn); }
+.level-3 { background: var(--critical); }
+
+/* ---- critical wear modal ---------------------------------------------- */
+
+.alert-modal .modal-content {
+  border: none;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 18px 50px rgb(27 36 48 / 28%);
+}
+
+.alert-modal .alert-head {
+  background: var(--critical);
+  color: #fff;
+  padding: 1.4rem 1.6rem;
+}
+
+.alert-modal .alert-head .alert-icon {
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.alert-modal .alert-head .alert-title {
+  font-size: 1.3rem;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.alert-modal .alert-head .alert-sub {
+  color: rgb(255 255 255 / 82%);
+  font-size: 0.9rem;
+}
+
+.alert-fact {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.alert-fact-value {
+  font-size: 1.05rem;
+  font-weight: 600;
+}
+
+/* ---- placeholder page ------------------------------------------------- */
+
+.placeholder {
+  border: 1px dashed #c3ccd8;
+  border-radius: 10px;
+  background: repeating-linear-gradient(
+    45deg, #fafbfc, #fafbfc 10px, #f4f6f9 10px, #f4f6f9 20px
+  );
+  padding: 2.5rem;
+  text-align: center;
+  color: var(--muted);
+}
+
+/* ---- misc ------------------------------------------------------------- */
+
+.form-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.3rem;
+}
+
+.link-card {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+  height: 100%;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.link-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgb(27 36 48 / 10%);
+  color: inherit;
+}
+
+.caveat {
+  border-left: 3px solid var(--worn);
+  background: #fffaf0;
+  padding: 0.7rem 0.95rem;
+  border-radius: 0 6px 6px 0;
+  font-size: 0.86rem;
+  color: #6a5220;
+}

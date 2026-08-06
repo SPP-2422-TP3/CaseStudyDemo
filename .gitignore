@@ -216,3 +216,10 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Reference material: a clone of the research repo this demo draws its data from.
+# Kept locally for provenance, never part of the demo.
+context-material/
+
+# Trained model cache, rebuilt by `spp2422-demo prepare`.
+data/models/

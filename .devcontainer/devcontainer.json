@@ -12,6 +12,11 @@
 			]
 		}
 	},
+	"features": {
+		"ghcr.io/va-h/devcontainers-features/uv:1": {}
+	},
 	"remoteUser": "root",
-	"onCreateCommand": "curl -fsSL https://claude.ai/install.sh | bash", // "uv sync" // TODO enable once setup
+	"onCreateCommand": "curl -fsSL https://claude.ai/install.sh | bash",
+	"postCreateCommand": "uv sync",
+	"forwardPorts": [8050]
 }
