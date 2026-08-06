@@ -18,7 +18,7 @@ from .components.wear_alert import alert_facts, alert_id, wear_alert
 from .data import LEVELS, STATIONS
 from .explain import explain
 from .features import curve_features
-from .models import FeatureModel
+from .models import CnnModel, FeatureModel, HybridModel
 from .theme import LEVEL_NAMES
 
 CRITICAL = 3
@@ -193,30 +193,34 @@ def _about_model(trained: TrainedStation, model_key: str) -> html.Div:
     model = trained.models[model_key]
     burst = data.peak_ref is not None
 
-    if isinstance(model, FeatureModel):
-        n_features = len(
-            curve_features(
-                data.curves[0], burst=burst, peak_ref=data.peak_ref[0] if burst else None
-            )
-        )
-        reads = (
-            f"{n_features} shape descriptors measured off the curve — how high the peak is and "
-            "when it falls, how long the rise and the fall take, and how straight each segment "
-            "runs" + (", plus the burst as the tool takes contact." if burst else ".")
-        )
-        method = (
-            "Occlusion sensitivity: every stretch of the stroke is flattened in turn and the "
-            "confidence it was carrying is recorded."
-        )
-    else:
-        reads = (
-            "the raw 500-sample curve. Nothing is measured off it beforehand — the network "
-            "learns during training which shapes carry the wear state."
-        )
-        method = (
-            "Integrated gradients: the sensitivity of the prediction accumulated along a path "
-            "from the average stroke to this one."
-        )
+    n_features = len(
+        curve_features(data.curves[0], burst=burst, peak_ref=data.peak_ref[0] if burst else None)
+    )
+    descriptors = f"{n_features} shape descriptors measured off the curve"
+    in_full = (
+        f"{descriptors} — how high the peak is and when it falls, how long the rise and the fall "
+        "take, how straight each segment runs and how steady the force is within each tenth of "
+        "the stroke"
+        + (", plus the burst as the tool takes contact and the dip that follows." if burst else ".")
+    )
+    raw = (
+        "The raw 500-sample curve, which the network reads for itself rather than being told what "
+        "to measure."
+    )
+    reads = {
+        FeatureModel: in_full,
+        CnnModel: raw,
+        HybridModel: f"{raw[:-1]}, and the {descriptors} alongside it — the two are joined "
+        "below a single head, so each can cover what the other misses.",
+    }[type(model)]
+
+    method = (
+        "Integrated gradients: the sensitivity of the prediction accumulated along a path from "
+        "the average stroke to this one."
+        if isinstance(model, CnnModel)
+        else "Occlusion sensitivity: every stretch of the stroke is flattened in turn and the "
+        "confidence it was carrying is recorded."
+    )
 
     # The unseen-run score is the one worth reading, so it says outright when it is only
     # chance -- which is where ironing sits, and where the demo must not oversell.

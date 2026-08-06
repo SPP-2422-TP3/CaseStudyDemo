@@ -26,11 +26,11 @@ import numpy as np
 
 from .data import STATIONS, StationData, load_station
 from .features import feature_matrix
-from .models import FeatureModel, WearModel, build_models
+from .models import WearModel, build_models
 
 CACHE_DIR = Path(__file__).resolve().parents[2] / "data" / "models"
 # Bump when anything that changes a trained model changes, so stale caches are ignored.
-CACHE_VERSION = 2
+CACHE_VERSION = 3
 
 
 @dataclass
@@ -55,30 +55,18 @@ class TrainedStation:
         return bool(self.run_accuracy) and max(self.run_accuracy.values()) >= threshold
 
 
-def _fit(model: WearModel, data: StationData, mask: np.ndarray, features: np.ndarray) -> None:
-    if isinstance(model, FeatureModel):
-        model.fit_matrix(features[mask], data.labels[mask])
-    else:
-        model.fit(data.curves[mask], data.labels[mask], None)
-
-
-def _predict(model: WearModel, data: StationData, mask: np.ndarray, features: np.ndarray):
-    if isinstance(model, FeatureModel):
-        return model.predict_proba_matrix(features[mask])
-    return model.predict_proba(data.curves[mask], None)
-
-
 def _train(key: str) -> TrainedStation:
     data = load_station(key)
     burst = data.peak_ref is not None  # only ironing rings on contact
     features, _ = feature_matrix(data.curves, burst=burst, peak_ref=data.peak_ref)
+    curves = np.asarray(data.curves, dtype=np.float32)
 
     train, test = data.train_mask, ~data.train_mask
     models: dict[str, WearModel] = {}
     accuracy: dict[str, float] = {}
     for model in build_models(burst=burst):
-        _fit(model, data, train, features)
-        predicted = _predict(model, data, test, features).argmax(axis=1) + 1
+        model.fit_matrix(curves[train], features[train], data.labels[train])
+        predicted = model.predict_proba_matrix(curves[test], features[test]).argmax(axis=1) + 1
         models[model.key] = model
         accuracy[model.key] = float(np.mean(predicted == data.labels[test]))
 
@@ -87,8 +75,8 @@ def _train(key: str) -> TrainedStation:
     for own, other in data.runs():
         held = data.run_mask(own, other)
         for model in build_models(burst=burst):
-            _fit(model, data, ~held, features)
-            predicted = _predict(model, data, held, features).argmax(axis=1) + 1
+            model.fit_matrix(curves[~held], features[~held], data.labels[~held])
+            predicted = model.predict_proba_matrix(curves[held], features[held]).argmax(axis=1) + 1
             folds.setdefault(model.key, []).append(float(np.mean(predicted == own)))
     run_accuracy = {key: float(np.mean(scores)) for key, scores in folds.items()}
 

@@ -9,7 +9,7 @@ One press stroke of a progressive die drives three stations — shear cutting, *
 **ironing**. Each forming station carries a force sensor. The demo shows what those signals reveal
 about the condition of the tools:
 
-- **Deep drawing** and **Ironing** — pick a production run and a stroke, pick one of three
+- **Deep drawing** and **Ironing** — pick a production run and a stroke, pick one of four
   models, and see the predicted wear state. A predicted critical state raises an alert, and the
   prediction can be opened up to show which part of the stroke the model actually read.
 - **Product quality** — placeholder for the strip-misalignment work, contributed separately.
@@ -79,31 +79,33 @@ uv run python scripts/extract_data.py
 
 ## Models and explanations
 
-Three classifiers, all mapping one curve to a probability over the three levels:
+Four classifiers, all mapping one curve to a probability over the three levels:
 
 | Model | Input |
 |---|---|
 | Logistic regression | handcrafted shape features — the transparent baseline |
 | Random forest | the same features |
 | 1-D CNN | the raw 500-sample curve |
+| Hybrid CNN | both — the conv stack's embedding concatenated with the features below one head |
 
 The shape features (peak height and position, percentile rise/fall durations, per-segment slope
-and R² over rise/plateau/fall, shape moments, and the ironing contact-transition burst) are ported
-from the research code rather than reinvented.
+and R² over rise/plateau/fall, shape moments, per-tenth variance, and for ironing the
+contact-transition burst and the draw-down that follows it) are ported from the research code and
+extended: 45 for deep drawing, 67 for ironing.
 
 Explanations are time-resolved, so they can be read straight off the force curve: **integrated
-gradients** for the CNN, **occlusion sensitivity** for the other two. Both are smoothed over 4% of
+gradients** for the CNN, **occlusion sensitivity** for the other three. Both are smoothed over 4% of
 the stroke — the question is which part of the stroke mattered, not which single sample.
 
 ## What the accuracies mean
 
 Measured on the actual data, not rounded up:
 
-| | Deep drawing (T) | | | Ironing (A) | | |
-|---|---|---|---|---|---|---|
-| | LogReg | Forest | CNN | LogReg | Forest | CNN |
-| **Held-out strokes** | 100.00% | 100.00% | 100.00% | 94.44% | 98.56% | 98.11% |
-| **Unseen run** | 99.56% | 99.62% | 99.96% | 30.93% | 26.62% | 32.49% |
+| | Deep drawing (T) | | | | Ironing (A) | | | |
+|---|---|---|---|---|---|---|---|---|
+| | LogReg | Forest | CNN | Hybrid | LogReg | Forest | CNN | Hybrid |
+| **Held-out strokes** | 100.00% | 100.00% | 100.00% | 100.00% | 96.56% | 99.22% | 96.89% | 99.11% |
+| **Unseen run** | 100.00% | 99.62% | 99.91% | 100.00% | 31.13% | 25.49% | 31.47% | 32.51% |
 
 *Held-out strokes* trains on strokes 0–399 of every run and tests on the rest. That is the split
 the deployed model uses, and it measures monitoring a tool that has already been characterised.
@@ -117,6 +119,18 @@ the project's own finding that the ironing signal is substantially harder than t
 one, and the dashboard says so on the overview page rather than showing the flattering number
 alone. `tests/test_pipeline.py` pins both results, so if either changes the tests fail and the
 wording has to be revisited.
+
+### Ironing fails this split for a specific reason
+
+Not for lack of signal. Under *unseen run* the withheld combination — say A1·T3 — leaves the two
+other runs at the same upstream T in the training set, carrying **different** ironing labels. The
+model matches the test strokes to those neighbours and answers with their label: A1 is called A2
+1051 times out of 1500, A2 is called A1 1056 times. That is a confound, not ignorance.
+
+Group the folds by upstream state instead — withhold all three runs of one T, train on the six at
+the other two — and the same features reach **56.00%**. `scripts/ironing_protocols.py` reproduces
+both protocols and tests each against relabelled runs. The dashboard keeps reporting leave-one-run-out
+because it is the harder question, but the honest reading is "not under this protocol", not "never".
 
 ## Background
 
@@ -133,15 +147,16 @@ src/spp2422_demo/
   app.py             Dash shell: top bar, navigation, page container
   data.py            loads curves.npz, mu terciles, the train/test split
   features.py        handcrafted shape descriptors
-  models.py          the three classifiers behind one protocol
+  models.py          the four classifiers behind one protocol
   explain.py         occlusion sensitivity and integrated gradients
   artifacts.py       trains, validates both ways, caches to data/models/
   station_view.py    the wear page, shared by both forming stages
   pages/             one module per route, discovered by Dash
   components/        figures, cards, the alert
   assets/            stylesheet and the CAD animation of the die
-scripts/extract_data.py   rebuilds data/curves.npz from the research pipeline
-compose.yaml              one-command start on a machine that only has Docker
+scripts/extract_data.py       rebuilds data/curves.npz from the research pipeline
+scripts/ironing_protocols.py  the two validation protocols behind the ironing caveat
+compose.yaml                  one-command start on a machine that only has Docker
 ```
 
 Development: `uv run ruff check .`, `uv run ruff format .`, `uv run pytest`.

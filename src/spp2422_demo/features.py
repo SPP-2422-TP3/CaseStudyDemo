@@ -16,9 +16,13 @@ textbook few:
 - Whole-segment trends: the curve is split into rise / plateau / fall around the peak,
   and each segment gets a linear-fit slope and R^2. Added because the real deep-drawing
   plateau is not flat -- it declines, close to linearly.
+- Region variance: the standard deviation within each tenth of the stroke. Shape
+  descriptors say where the curve goes; this says how steadily it gets there.
 - `burst=True` (ironing only -- deep drawing never rings) adds the contact-transition
-  burst's position and amplitude: residual energy against a median-filtered copy,
-  searched only before the curve's own peak.
+  burst's position and amplitude (residual energy against a median-filtered copy,
+  searched only before the curve's own peak), the oscillation energy per tenth, and the
+  first draw-down: ironing rises to a shoulder, dips through the burst, then climbs to
+  its real peak, and the depth and steepness of that dip are wear-sensitive.
 """
 
 from __future__ import annotations
@@ -29,6 +33,7 @@ import numpy as np
 from scipy.signal import medfilt
 
 PERCENTILES = (0.1, 0.25, 0.5, 0.75, 0.9)
+BANDS = 10  # slices of event time that the variance features are measured over
 
 # Extracting features for all 4500 curves takes a few seconds, and both the validation
 # sweeps and the dashboard ask for the same matrices over and over. Keyed on the content
@@ -117,6 +122,38 @@ def _segment_stats(
     return {f"{prefix}_slope": float(slope), f"{prefix}_r2": r2}
 
 
+def _first_drawdown(
+    smooth: np.ndarray, x: np.ndarray, burst_i: int, peak_i: int
+) -> dict[str, float]:
+    """The dip an ironing stroke makes before its real peak.
+
+    The force climbs to a shoulder, the tool takes contact -- the burst -- and the force
+    drops away before climbing again to the true peak. Measured on the burst-suppressed
+    curve so the oscillation itself cannot stand in for the shoulder or the dip.
+    """
+    shoulder_i = int(smooth[: max(burst_i, 1)].argmax())
+    stop = max(peak_i, shoulder_i + 2)
+    dip_i = shoulder_i + int(smooth[shoulder_i:stop].argmin())
+    shoulder_v, dip_v, peak_v = (
+        float(smooth[shoulder_i]),
+        float(smooth[dip_i]),
+        float(smooth[peak_i]),
+    )
+    depth = shoulder_v - dip_v
+    width = float(x[dip_i] - x[shoulder_i])
+    return {
+        "shoulder_v": shoulder_v,
+        "shoulder_x": float(x[shoulder_i]),
+        "dip_v": dip_v,
+        "dip_x": float(x[dip_i]),
+        "drawdown_depth": depth,
+        "drawdown_width": width,
+        "drawdown_rate": depth / max(width, 1e-6),
+        "drawdown_relative": depth / max(peak_v, 1e-6),
+        "peak_minus_shoulder": peak_v - shoulder_v,
+    }
+
+
 def curve_features(
     curve: np.ndarray, *, burst: bool = False, peak_ref: np.ndarray | None = None
 ) -> dict[str, float]:
@@ -170,14 +207,26 @@ def curve_features(
     above = np.flatnonzero(curve > half)
     features["width_half"] = float((above[-1] - above[0]) / n) if len(above) else 0.0
 
+    edges = np.linspace(0, n, BANDS + 1).astype(int)
+    bands = list(zip(edges[:-1], edges[1:], strict=True))
+    for i, (lo, hi) in enumerate(bands):
+        features[f"band_std_{i}"] = float(curve[lo:hi].std())
+
     if burst:
-        residual = curve - medfilt(curve, kernel_size=9)
+        smooth = np.asarray(peak_ref, dtype=np.float64) if peak_ref is not None else None
+        residual = curve - (smooth if smooth is not None else medfilt(curve, kernel_size=9))
         energy = np.convolve(residual**2, np.ones(9), mode="same")
         lo = max(1, round(0.05 * n))
         hi = max(lo + 1, peak_i)
-        features["burst_x"] = (lo + int(np.argmax(energy[lo:hi]))) / n
+        burst_i = lo + int(np.argmax(energy[lo:hi]))
+        features["burst_x"] = burst_i / n
         features["burst_amplitude"] = float(np.sqrt(energy[lo:hi].max()))
         features["residual_energy"] = float(np.sqrt(np.mean(residual**2)))
+        for i, (band_lo, band_hi) in enumerate(bands):
+            features[f"band_osc_{i}"] = float(np.abs(residual[band_lo:band_hi]).mean())
+        features.update(
+            _first_drawdown(smooth if smooth is not None else curve, x, burst_i, peak_i)
+        )
 
     return features
 

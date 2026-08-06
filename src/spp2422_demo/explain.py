@@ -108,7 +108,7 @@ def integrated_gradients(model: CnnModel, curve: np.ndarray, level: int) -> Attr
     stroke shares.
     """
     class_index = LEVELS.index(level)
-    x = model._standardise(np.asarray(curve, dtype=np.float32)[None, :])
+    x = model.standardise(np.asarray(curve, dtype=np.float32)[None, :])
     baseline = torch.zeros_like(x)  # standardised space: zero is the training mean
 
     alphas = torch.linspace(1.0 / IG_STEPS, 1.0, IG_STEPS).view(-1, 1, 1)
