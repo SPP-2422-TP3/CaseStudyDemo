@@ -4,12 +4,11 @@ from __future__ import annotations
 
 import dash
 import dash_bootstrap_components as dbc
-import numpy as np
 from dash import Input, Output, callback, dcc, html
 
 from spp2422_demo.artifacts import load_artifacts
-from spp2422_demo.calibration import BUDGETS, CENTRE
-from spp2422_demo.components.calibration_figure import SERIES, placement_figure
+from spp2422_demo.calibration import CENTRE
+from spp2422_demo.components.calibration_figure import placement_figure
 from spp2422_demo.components.layout import caveat, page_header, panel, stat_card
 from spp2422_demo.data import STATIONS
 
@@ -33,9 +32,10 @@ def layout(**_kwargs):
                     [
                         "A tool does not step from good to scrap. It passes through a threshold "
                         "where the parts are still within tolerance but the surface is going, and "
-                        "that is the state worth catching. It is also the one state nobody can "
-                        "hand a model: wear crosses it uncontrolled, and the press cannot be held "
-                        "there long enough to collect labelled strokes.",
+                        "that is the state worth catching — T2 for deep drawing, A2 for ironing. "
+                        "It is also the one state nobody can hand a model: wear crosses it "
+                        "uncontrolled, and the press cannot be held there long enough to collect "
+                        "labelled strokes.",
                     ],
                     className="mb-2",
                 ),
@@ -130,34 +130,9 @@ def _headline(station_key: str, calibration) -> list:
     return [cards, html.P(reading, className="section-note mt-3 mb-0")]
 
 
-def _table(calibration, window: int) -> dbc.Table:
-    """The numbers behind the figure -- the orange control line is deliberately low
-    contrast, so the values it encodes are also available as text."""
-    header = html.Thead(
-        html.Tr(
-            [html.Th("Real strokes per endpoint")]
-            + [html.Th(series.label) for series in SERIES.values()]
-            + [html.Th("p vs. control")]
-        )
-    )
-    rows = []
-    for budget in BUDGETS[window]:
-        cells = [html.Td(str(budget))]
-        for variant in SERIES:
-            placement = calibration.at(window, budget, variant)
-            cells.append(html.Td(f"{placement.position:.3f}" if placement else "—"))
-        p = calibration.p_values.get((window, budget), np.nan)
-        cells.append(html.Td(f"{p:.4f}" if np.isfinite(p) else "—"))
-        rows.append(html.Tr(cells))
-    return dbc.Table([header, html.Tbody(rows)], bordered=False, hover=True, size="sm")
-
-
 @callback(Output(BODY, "children"), Input(STATION_SELECT, "value"))
 def _body(station_key: str):
     calibration = load_artifacts(station_key).calibration
-    best = calibration.best()
-    window = best[0] if best else min(BUDGETS)
-    scope = f"first {window} strokes" if window < 500 else "whole run"
 
     return html.Div(
         [
@@ -175,19 +150,21 @@ def _body(station_key: str):
                 ),
                 className="mt-4",
             ),
-            html.Div(
-                panel(
-                    f"The same numbers, {scope}",
-                    _table(calibration, window),
-                    note=f"Calibrated on {', '.join(calibration.features)}.",
-                ),
-                className="mt-4",
-            ),
             caveat(
-                "Read this narrowly. Most window and budget combinations do not separate from "
-                "the control, and this is a placement on a friction axis rather than a wear "
-                "label — it says the withheld state sits between the two anchors, not that any "
-                "individual stroke can be classified."
+                [
+                    html.P(
+                        "Read this narrowly. Most window and budget combinations do not "
+                        "separate from the control, and this is a placement on a friction "
+                        "axis rather than a wear label — it says the withheld state sits "
+                        "between the two anchors, not that any individual stroke can be "
+                        "classified.",
+                        className="mb-1",
+                    ),
+                    html.P(
+                        f"Calibrated on {', '.join(calibration.features)}.",
+                        className="mb-0",
+                    ),
+                ]
             ),
         ]
     )

@@ -40,7 +40,6 @@ def placement_figure(calibration: Calibration) -> go.Figure:
     """
     titles = [f"first {w} strokes" if w < 500 else "whole 500-stroke run" for w in WINDOWS]
     figure = make_subplots(rows=1, cols=len(WINDOWS), shared_yaxes=True, subplot_titles=titles)
-    last = len(WINDOWS)
 
     for column, window in enumerate(WINDOWS, start=1):
         # A budget of zero has no real strokes to anchor on, so its placement is the bare
@@ -79,24 +78,16 @@ def placement_figure(calibration: Calibration) -> go.Figure:
                 col=column,
             )
 
-        # Labelled once, on the last panel, where the space above the data is empty --
-        # repeating them per panel puts text straight through the marks.
         guides = (
             (1.0, "worn anchor", "top right"),
             (0.5, "exactly centred", "top right"),
             (0.0, "pristine anchor", "bottom right"),
         )
         for y, text, position in guides:
-            # The annotation arguments have to be absent, not None: add_hline reads a
-            # None as "annotate with the default", which prints a literal "new text".
-            label = (
-                {
-                    "annotation": {"text": text, "font": {"size": 10, "color": MUTED}},
-                    "annotation_position": position,
-                }
-                if column == last
-                else {}
-            )
+            label = {
+                "annotation": {"text": text, "font": {"size": 10, "color": MUTED}},
+                "annotation_position": position,
+            }
             figure.add_hline(
                 y=y,
                 line={"color": MUTED, "width": 1, "dash": "dash" if y == 0.5 else "dot"},
