@@ -95,8 +95,8 @@ def _headline(station_key: str, calibration) -> list:
                 stat_card(
                     f"{withheld} placed at",
                     f"{mix.position:.3f}",
-                    f"0.5 is exactly between the two anchors ({window_text}, "
-                    f"{budget} real strokes per endpoint)",
+                    f"0.5 is exactly between the two anchors (window: {window_text}, "
+                    f"budget: {budget} real strokes per endpoint)",
                 ),
                 md=4,
             ),

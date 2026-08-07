@@ -38,7 +38,12 @@ def placement_figure(calibration: Calibration) -> go.Figure:
     ordering should put the withheld state near 0.5. The controls say whether any
     given panel means anything.
     """
-    titles = [f"first {w} strokes" if w < 500 else "whole 500-stroke run" for w in WINDOWS]
+    # "Window" and "budget" are both stroke counts, so name them explicitly wherever they
+    # appear -- otherwise the two axes read as the same number repeated.
+    titles = [
+        f"Window: first {w} strokes" if w < 500 else "Window: whole run (500 strokes)"
+        for w in WINDOWS
+    ]
     figure = make_subplots(rows=1, cols=len(WINDOWS), shared_yaxes=True, subplot_titles=titles)
 
     for column, window in enumerate(WINDOWS, start=1):
@@ -70,7 +75,7 @@ def placement_figure(calibration: Calibration) -> go.Figure:
                     line={"color": series.color, "width": 2},
                     marker={"color": series.color, "size": 9, "symbol": series.symbol},
                     hovertemplate=(
-                        f"<b>{series.label}</b><br>%{{x}} real strokes per endpoint"
+                        f"<b>{series.label}</b><br>Budget: %{{x}} real strokes per endpoint"
                         "<br>position %{y:.3f}<extra></extra>"
                     ),
                 ),
@@ -98,7 +103,7 @@ def placement_figure(calibration: Calibration) -> go.Figure:
         # Ticks only where a budget was actually run, so the axis never implies a
         # measurement between two of them.
         figure.update_xaxes(
-            title="real strokes per endpoint",
+            title="Budget: real strokes per endpoint",
             tickmode="array",
             tickvals=budgets,
             row=1,
