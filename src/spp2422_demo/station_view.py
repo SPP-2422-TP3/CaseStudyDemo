@@ -116,7 +116,9 @@ def layout(station_key: str) -> html.Div:
                             ),
                             note=(
                                 "Dotted lines are the mean curve of each wear level across the "
-                                "whole dataset, shaded by one standard deviation."
+                                "whole dataset, shaded by one standard deviation. The force axis "
+                                "is fixed across every stroke of the stage, so heights compare "
+                                "directly from one stroke to the next."
                             ),
                         ),
                         lg=8,

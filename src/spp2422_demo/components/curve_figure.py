@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+from functools import cache
+
 import numpy as np
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-from ..data import EVENT_TIME, LEVELS, StationData
+from ..data import EVENT_TIME, LEVELS, StationData, load_station
 from ..explain import Attribution
 from ..theme import GRID, INK, LEVEL_COLORS, MUTED, OKABE_ITO, SIMULATED
 from .layout import percent
@@ -18,6 +20,21 @@ FORCE_TITLE = "Normalized force"
 def _rgba(hex_color: str, alpha: float) -> str:
     r, g, b = (int(hex_color[i : i + 2], 16) for i in (1, 3, 5))
     return f"rgba({r},{g},{b},{alpha})"
+
+
+@cache
+def _force_range(station_key: str) -> tuple[float, float]:
+    """Y limits wide enough for every stroke of one stage, with a little headroom.
+
+    Fixed rather than autoscaled: stepping through a run rescales the axis on every
+    stroke otherwise, which flattens the very thing the view is for. The ironing burst in
+    particular varies by more than the rest of the curve, and an axis that follows it
+    makes every stroke look the same height.
+    """
+    curves = load_station(station_key).curves
+    low, high = float(curves.min()), float(curves.max())
+    pad = 0.05 * (high - low)
+    return low - pad, high + pad
 
 
 def level_reference(data: StationData, level: int) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
@@ -68,7 +85,7 @@ def stroke_figure(data: StationData, index: int, show_references: bool = True) -
 
     figure.update_layout(
         xaxis={"title": AXIS_TITLE, "range": [0, 1]},
-        yaxis={"title": FORCE_TITLE},
+        yaxis={"title": FORCE_TITLE, "range": _force_range(data.station.key)},
         margin={"l": 60, "r": 20, "t": 10, "b": 45},
         height=380,
     )
@@ -163,7 +180,8 @@ def attribution_figure(data: StationData, index: int, attribution: Attribution) 
     )
     figure.update_xaxes(range=[0, 1], row=1, col=1)
     figure.update_xaxes(title=AXIS_TITLE, range=[0, 1], row=2, col=1)
-    figure.update_yaxes(title=FORCE_TITLE, row=1, col=1)
+    # Same limits as the stroke figure above it, so the two panels read as one curve.
+    figure.update_yaxes(title=FORCE_TITLE, range=_force_range(data.station.key), row=1, col=1)
     figure.update_yaxes(title="Evidence", row=2, col=1)
     return figure
 

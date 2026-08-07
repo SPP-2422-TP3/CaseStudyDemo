@@ -124,6 +124,20 @@ def test_attributions_cover_the_whole_stroke(key):
         assert 0.0 <= start <= end <= 1.0
 
 
+@pytest.mark.parametrize("key", STATION_KEYS)
+def test_the_force_axis_is_fixed_across_strokes(key):
+    """A stroke-dependent y range would rescale the curve on every tick of the stream,
+    hiding the amplitude differences the view exists to show."""
+    from spp2422_demo.components.curve_figure import stroke_figure
+
+    data = load_station(key)
+    ranges = {tuple(stroke_figure(data, i).layout.yaxis.range) for i in (0, 250, 4499)}
+    assert len(ranges) == 1, "the y range follows the selected stroke"
+
+    low, high = ranges.pop()
+    assert low < data.curves.min() and high > data.curves.max()
+
+
 def test_every_page_imports_and_has_a_layout():
     """Dash imports page modules from their file path, which breaks constructs that expect
     the module in `sys.modules`. It does so lazily at server start, so without this the
