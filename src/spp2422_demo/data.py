@@ -50,7 +50,7 @@ class Station:
 
 DEEP_DRAWING = Station(
     key="deep_drawing",
-    name="Deep drawing",
+    name="Deep Drawing",
     label_key="T",
     level_prefix="T",
     curve_key="real_deep_drawing",

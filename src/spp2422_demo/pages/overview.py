@@ -57,7 +57,7 @@ def layout(**_kwargs):
     return html.Div(
         [
             page_header(
-                "Tool wear from forming force signals",
+                "Tool Wear from Forming Force Signals",
                 "SPP 2422 · Teilprojekt 3 — reading the condition of a progressive die "
                 "from the forces it produces.",
             ),
@@ -178,7 +178,7 @@ def layout(**_kwargs):
                     ),
                     html.Strong("That question has its own page: "),
                     html.Span(
-                        "Wear threshold withholds the intermediate state altogether and asks "
+                        "Wear Threshold withholds the intermediate state altogether and asks "
                         f"whether the {n_simulated} simulated curves can put it back between "
                         "the two measured extremes."
                     ),

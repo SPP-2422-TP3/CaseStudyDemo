@@ -225,7 +225,7 @@ def _about_model(trained: TrainedStation, model_key: str) -> html.Div:
     )
 
     # What this number is not: every wear level appears in training here, so it measures
-    # monitoring an already characterised tool. The Wear threshold page asks the harder
+    # monitoring an already characterised tool. The Wear Threshold page asks the harder
     # question, about a state the model was never shown.
     scope = (
         "Every wear level appears in training, so this measures watching a tool that has "

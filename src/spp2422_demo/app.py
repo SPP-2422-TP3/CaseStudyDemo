@@ -18,7 +18,7 @@ ASSETS = HERE / "assets"
 # twice and register its callbacks twice.
 PAGES = HERE / "pages"
 
-TITLE = "SPP 2422 · TP3 — Tool wear from forming forces"
+TITLE = "SPP 2422 · TP3 — Tool Wear from Forming Forces"
 
 
 def _topbar() -> html.Div:
@@ -35,7 +35,7 @@ def _topbar() -> html.Div:
                             [
                                 html.Div("SPP 2422 · Teilprojekt 3", className="brand"),
                                 html.Div(
-                                    "Tool wear from forming force signals", className="brand-sub"
+                                    "Tool Wear from Forming Force Signals", className="brand-sub"
                                 ),
                             ],
                             href="/",

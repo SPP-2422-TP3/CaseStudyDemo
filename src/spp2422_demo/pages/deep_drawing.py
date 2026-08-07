@@ -6,7 +6,7 @@ import dash
 
 from spp2422_demo.station_view import layout as station_layout
 
-dash.register_page(__name__, path="/deep-drawing", name="Deep drawing", order=1)
+dash.register_page(__name__, path="/deep-drawing", name="Deep Drawing", order=1)
 
 
 def layout(**_kwargs):

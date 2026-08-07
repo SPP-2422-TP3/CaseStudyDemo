@@ -13,7 +13,7 @@ from spp2422_demo.components.calibration_figure import SERIES, placement_figure
 from spp2422_demo.components.layout import caveat, page_header, panel, stat_card
 from spp2422_demo.data import STATIONS
 
-dash.register_page(__name__, path="/wear-threshold", name="Wear threshold", order=3)
+dash.register_page(__name__, path="/wear-threshold", name="Wear Threshold", order=3)
 
 STATION_SELECT = "threshold-station"
 BODY = "threshold-body"
@@ -23,7 +23,7 @@ def layout(**_kwargs):
     return html.Div(
         [
             page_header(
-                "Locating the wear threshold",
+                "Locating the Wear Threshold",
                 "The state that matters is the one nobody can label. So withhold it, and ask "
                 "the simulated friction sweep to put it back.",
             ),

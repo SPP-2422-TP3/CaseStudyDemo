@@ -210,7 +210,7 @@ GLOSSARY = [
     ),
     (
         "The withheld centre state",
-        "The harder question, on the Wear threshold page. The intermediate wear level is taken "
+        "The harder question, on the Wear Threshold page. The intermediate wear level is taken "
         "out of training entirely — as it is in production, where a tool crosses that threshold "
         "uncontrolled — and the simulated friction sweep has to place it between the two "
         "measured extremes. 0.5 would be exactly centred.",
@@ -271,7 +271,7 @@ def layout(**_kwargs):
     return html.Div(
         [
             page_header(
-                "Help and background",
+                "Help and Background",
                 "How to read this dashboard, and the published work it stands on.",
             ),
             dbc.Row(

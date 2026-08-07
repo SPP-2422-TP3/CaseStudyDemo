@@ -8,14 +8,14 @@ from dash import html
 
 from spp2422_demo.components.layout import page_header, panel
 
-dash.register_page(__name__, path="/quality", name="Product quality", order=4)
+dash.register_page(__name__, path="/quality", name="Product Quality", order=4)
 
 
 def layout(**_kwargs):
     return html.Div(
         [
             page_header(
-                "Product quality prediction",
+                "Product Quality Prediction",
                 "Predicting part defects from the position of the strip in the progressive die.",
             ),
             dbc.Row(

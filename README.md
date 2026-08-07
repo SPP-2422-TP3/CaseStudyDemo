@@ -9,10 +9,10 @@ One press stroke of a progressive die drives three stations — shear cutting, *
 **ironing**. Each forming station carries a force sensor. The demo shows what those signals reveal
 about the condition of the tools:
 
-- **Deep drawing** and **Ironing** — pick a production run and a stroke, pick one of four
+- **Deep Drawing** and **Ironing** — pick a production run and a stroke, pick one of four
   models, and see the predicted wear state. A predicted critical state raises an alert, and the
   prediction can be opened up to show which part of the stroke the model actually read.
-- **Product quality** — placeholder for the strip-misalignment work, contributed separately.
+- **Product Quality** — placeholder for the strip-misalignment work, contributed separately.
 - **Help** — how to read the dashboard, and the papers behind it.
 
 ## Run it
@@ -119,7 +119,7 @@ but the surface is going, and that is the state worth catching. It is also the o
 cannot be put in a training set: wear passes through it uncontrolled, and the press cannot be held
 there long enough to collect labelled strokes.
 
-So the **Wear threshold** page withholds it. The intermediate level is taken out of training
+So the **Wear Threshold** page withholds it. The intermediate level is taken out of training
 entirely; what remains is a pristine tool, a heavily worn one, and the FE friction sweep that spans
 the middle continuously — 11 simulated deep-drawing curves and 33 ironing ones, already in
 `data/curves.npz`. A Gaussian process maps curve descriptors to the friction coefficient using the
