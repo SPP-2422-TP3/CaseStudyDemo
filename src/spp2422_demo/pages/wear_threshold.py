@@ -150,21 +150,24 @@ def _body(station_key: str):
                 ),
                 className="mt-4",
             ),
-            caveat(
-                [
-                    html.P(
-                        "Read this narrowly. Most window and budget combinations do not "
-                        "separate from the control, and this is a placement on a friction "
-                        "axis rather than a wear label — it says the withheld state sits "
-                        "between the two anchors, not that any individual stroke can be "
-                        "classified.",
-                        className="mb-1",
-                    ),
-                    html.P(
-                        f"Calibrated on {', '.join(calibration.features)}.",
-                        className="mb-0",
-                    ),
-                ]
+            html.Div(
+                caveat(
+                    [
+                        html.P(
+                            "Read this narrowly. Most window and budget combinations do not "
+                            "separate from the control, and this is a placement on a friction "
+                            "axis rather than a wear label — it says the withheld state sits "
+                            "between the two anchors, not that any individual stroke can be "
+                            "classified.",
+                            className="mb-1",
+                        ),
+                        html.P(
+                            f"Calibrated on {', '.join(calibration.features)}.",
+                            className="mb-0",
+                        ),
+                    ]
+                ),
+                className="mt-4",
             ),
         ]
     )

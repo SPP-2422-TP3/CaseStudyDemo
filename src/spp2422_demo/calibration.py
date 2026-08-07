@@ -51,7 +51,9 @@ ENDPOINTS = (1, 3)
 
 SEEDS = tuple(range(8))
 # Windows are strokes from the start of each run; 500 is the whole run, i.e. no window.
-WINDOWS = (500, 50, 20)
+# Ordered narrowest first, so the panels read left-to-right as "less early data" to
+# "the whole run" -- matching the budget axis, which also grows within each panel.
+WINDOWS = (20, 50, 500)
 BUDGETS = {500: (0, 5, 10, 25, 50), 50: (0, 5, 10, 25), 20: (0, 5, 10)}
 # One length-scale per feature needs points to estimate it from, and the sweep supplies
 # 11 (deep drawing) or 33 (ironing). Six keeps the kernel well inside that budget.
