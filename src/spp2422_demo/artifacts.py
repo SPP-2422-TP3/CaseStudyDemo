@@ -30,7 +30,7 @@ from .models import WearModel, build_models
 
 CACHE_DIR = Path(__file__).resolve().parents[2] / "data" / "models"
 # Bump when anything that changes a trained model changes, so stale caches are ignored.
-CACHE_VERSION = 4
+CACHE_VERSION = 5
 
 
 @dataclass

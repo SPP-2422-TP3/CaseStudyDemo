@@ -40,7 +40,7 @@ from scipy.stats import ttest_rel
 from sklearn.exceptions import ConvergenceWarning
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, ConstantKernel, WhiteKernel
-from sklearn.metrics import roc_auc_score
+from sklearn.metrics import f1_score, roc_auc_score
 
 from .data import LEVELS, StationData
 from .features import feature_matrix
@@ -72,7 +72,8 @@ class Placement:
     position: float  # mean over seeds; 0 = low anchor, 1 = high anchor
     spread: float  # standard deviation over seeds
     alarm_auc: float  # centre-or-worse vs. confidently-good, threshold-free
-    confusion: np.ndarray  # (3, 3), rows true level, columns predicted
+    accuracy: float  # mean over seeds; the tercile call from the same discretised mean
+    f1: float  # macro-F1 over seeds, same tercile call; 1/3 is chance on three levels
 
 
 @dataclass(frozen=True)
@@ -213,8 +214,8 @@ def _level_spread(column: np.ndarray, labels: np.ndarray) -> float:
 
 def _score(
     mean: np.ndarray, std: np.ndarray, levels: np.ndarray, edges: np.ndarray
-) -> tuple[float, float, np.ndarray]:
-    """Placement of the centre state, alarm separability, and a discretised confusion."""
+) -> tuple[float, float, float, float]:
+    """Placement of the centre state, alarm separability, and tercile classification quality."""
     low, high = mean[levels == ENDPOINTS[0]], mean[levels == ENDPOINTS[1]]
     centre = mean[levels == CENTRE]
     span = high.mean() - low.mean() if len(low) and len(high) else np.nan
@@ -231,17 +232,13 @@ def _score(
     mixed = 0 < risky.sum() < len(risky)
     alarm = float(roc_auc_score(risky, z(mean) + z(std))) if mixed else np.nan
 
-    predicted = np.digitize(mean, edges)
-    confusion = np.array(
-        [
-            [
-                float(np.mean(predicted[levels == level] == k)) if (levels == level).any() else 0.0
-                for k in range(len(LEVELS))
-            ]
-            for level in LEVELS
-        ]
-    )
-    return position, alarm, confusion
+    # The same continuous mean, cut at the sweep's own tercile edges and named a level --
+    # a harsher, discrete read of the same placement, including on the centre state that
+    # the position and alarm scores above never ask to be classified correctly.
+    predicted = np.digitize(mean, edges) + 1
+    accuracy = float(np.mean(predicted == levels))
+    f1 = float(f1_score(levels, predicted, labels=list(LEVELS), average="macro", zero_division=0))
+    return position, alarm, accuracy, f1
 
 
 def calibrate(data: StationData) -> Calibration:
@@ -262,7 +259,7 @@ def calibrate(data: StationData) -> Calibration:
             _fit_gp(x_sim, shuffled, ard=ard),
         )
 
-    raw: dict[tuple[int, int, str], list[tuple[float, float, np.ndarray]]] = {}
+    raw: dict[tuple[int, int, str], list[tuple[float, float, float, float]]] = {}
     for window in WINDOWS:
         inside = data.stroke_index < window
         x_window = _standardize(x_real_raw[inside])
@@ -331,12 +328,14 @@ def _combine(
 def _summarise(
     station_key: str,
     names: list[str],
-    raw: dict[tuple[int, int, str], list[tuple[float, float, np.ndarray]]],
+    raw: dict[tuple[int, int, str], list[tuple[float, float, float, float]]],
 ) -> Calibration:
     placements = []
     for (window, budget, variant), scores in sorted(raw.items()):
         positions = np.array([s[0] for s in scores])
         alarms = np.array([s[1] for s in scores])
+        accuracies = np.array([s[2] for s in scores])
+        f1s = np.array([s[3] for s in scores])
         placements.append(
             Placement(
                 window=window,
@@ -345,7 +344,8 @@ def _summarise(
                 position=float(np.nanmean(positions)),
                 spread=float(np.nanstd(positions)),
                 alarm_auc=float(np.nanmean(alarms)),
-                confusion=np.mean([s[2] for s in scores], axis=0),
+                accuracy=float(np.nanmean(accuracies)),
+                f1=float(np.nanmean(f1s)),
             )
         )
 

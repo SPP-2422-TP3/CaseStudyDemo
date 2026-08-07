@@ -31,6 +31,15 @@ SERIES = {
 }
 
 
+# "Window" and "budget" are both stroke counts, so name them explicitly wherever they
+# appear -- otherwise the two axes read as the same number repeated.
+def _window_titles() -> list[str]:
+    return [
+        f"Window: first {w} strokes" if w < 500 else "Window: whole run (500 strokes)"
+        for w in WINDOWS
+    ]
+
+
 def placement_figure(calibration: Calibration) -> go.Figure:
     """One panel per window: placement against budget, with both controls.
 
@@ -38,12 +47,7 @@ def placement_figure(calibration: Calibration) -> go.Figure:
     ordering should put the withheld state near 0.5. The controls say whether any
     given panel means anything.
     """
-    # "Window" and "budget" are both stroke counts, so name them explicitly wherever they
-    # appear -- otherwise the two axes read as the same number repeated.
-    titles = [
-        f"Window: first {w} strokes" if w < 500 else "Window: whole run (500 strokes)"
-        for w in WINDOWS
-    ]
+    titles = _window_titles()
     figure = make_subplots(rows=1, cols=len(WINDOWS), shared_yaxes=True, subplot_titles=titles)
 
     for column, window in enumerate(WINDOWS, start=1):
@@ -116,6 +120,81 @@ def placement_figure(calibration: Calibration) -> go.Figure:
         height=350,
         margin={"l": 70, "r": 20, "t": 90, "b": 45},
         legend={"y": 1.24, "yanchor": "bottom"},
+    )
+    for annotation in figure.layout.annotations[: len(WINDOWS)]:
+        annotation.font.size = 12
+        annotation.font.color = MUTED
+    return figure
+
+
+# (metric field on Placement, y-axis title, subplot row)
+_QUALITY_METRICS = (("accuracy", "Accuracy", 1), ("f1", "Macro F1", 2))
+
+
+def quality_figure(calibration: Calibration) -> go.Figure:
+    """Accuracy and macro-F1 against budget, one column per window, same variants as
+    `placement_figure`.
+
+    This is a harsher, discrete read of the same fitted mean: cut at the sweep's tercile
+    edges and scored as a three-way level call, including on the withheld centre state
+    that the placement figure never asks to be classified correctly, only positioned.
+    1/3 is chance on three roughly balanced levels.
+    """
+    titles = [*_window_titles(), *([""] * len(WINDOWS))]
+    figure = make_subplots(
+        rows=2,
+        cols=len(WINDOWS),
+        shared_xaxes=True,
+        shared_yaxes=True,
+        subplot_titles=titles,
+        vertical_spacing=0.16,
+    )
+
+    for metric, metric_label, row in _QUALITY_METRICS:
+        for column, window in enumerate(WINDOWS, start=1):
+            budgets = [b for b in BUDGETS[window] if b > 0]
+            for variant, series in SERIES.items():
+                points = [(b, calibration.at(window, b, variant)) for b in budgets]
+                points = [(b, p) for b, p in points if p is not None]
+                if not points:
+                    continue
+                figure.add_trace(
+                    go.Scatter(
+                        x=[b for b, _ in points],
+                        y=[getattr(p, metric) for _, p in points],
+                        mode="lines+markers",
+                        name=series.label,
+                        legendgroup=variant,
+                        showlegend=row == 1 and column == 1,
+                        line={"color": series.color, "width": 2},
+                        marker={"color": series.color, "size": 8, "symbol": series.symbol},
+                        hovertemplate=(
+                            f"<b>{series.label}</b><br>Budget: %{{x}} real strokes per endpoint"
+                            f"<br>{metric_label}: %{{y:.3f}}<extra></extra>"
+                        ),
+                    ),
+                    row=row,
+                    col=column,
+                )
+            figure.add_hline(
+                y=1 / 3,
+                line={"color": MUTED, "width": 1, "dash": "dot"},
+                row=row,
+                col=column,
+            )
+            figure.update_xaxes(
+                title="Budget: real strokes per endpoint" if row == 2 else None,
+                tickmode="array",
+                tickvals=budgets,
+                row=row,
+                col=column,
+            )
+        figure.update_yaxes(range=[0, 1], row=row, col=1, title=metric_label)
+
+    figure.update_layout(
+        height=520,
+        margin={"l": 70, "r": 20, "t": 80, "b": 45},
+        legend={"y": 1.1, "yanchor": "bottom"},
     )
     for annotation in figure.layout.annotations[: len(WINDOWS)]:
         annotation.font.size = 12

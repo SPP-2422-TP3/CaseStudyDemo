@@ -8,7 +8,7 @@ from dash import Input, Output, callback, dcc, html
 
 from spp2422_demo.artifacts import load_artifacts
 from spp2422_demo.calibration import CENTRE
-from spp2422_demo.components.calibration_figure import placement_figure
+from spp2422_demo.components.calibration_figure import placement_figure, quality_figure
 from spp2422_demo.components.layout import caveat, page_header, panel, stat_card
 from spp2422_demo.data import STATIONS
 
@@ -151,14 +151,28 @@ def _body(station_key: str):
                 className="mt-4",
             ),
             html.Div(
+                panel(
+                    "Classification quality against the real-data budget",
+                    dcc.Graph(
+                        figure=quality_figure(calibration), config={"displayModeBar": False}
+                    ),
+                    note=(
+                        "The same fitted values, cut at the sweep's tercile edges and scored as "
+                        "a three-way level call instead of a continuous position. Dotted line is "
+                        "1/3, chance on three levels."
+                    ),
+                ),
+                className="mt-4",
+            ),
+            html.Div(
                 caveat(
                     [
                         html.P(
                             "Read this narrowly. Most window and budget combinations do not "
-                            "separate from the control, and this is a placement on a friction "
-                            "axis rather than a wear label — it says the withheld state sits "
-                            "between the two anchors, not that any individual stroke can be "
-                            "classified.",
+                            "separate from the control, and the discrete accuracy/F1 read above "
+                            "is harsher than the continuous placement it is cut from — a state "
+                            "correctly sensed as elevated can still land in the wrong tercile. "
+                            "Neither says any individual stroke's classification is certain.",
                             className="mb-1",
                         ),
                         html.P(
