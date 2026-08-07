@@ -27,8 +27,8 @@ Then open <http://localhost:8050>. In VS Code, *Reopen in Container* does the sa
 `.devcontainer/`, and `uv run spp2422-demo` starts it. With [uv](https://docs.astral.sh/uv/)
 already installed, that one command is the whole story.
 
-The first start trains the models and caches them in `data/models/`; every later start is
-instant. Force a rebuild with `uv run spp2422-demo prepare --force`.
+Trained models and the centre-state calibration are cached in `data/models/` and committed, so
+even the first start is instant. Force a rebuild with `uv run spp2422-demo prepare --force`.
 
 ## Show it on another machine
 
@@ -46,7 +46,12 @@ the process stops, so it suits a talk, not a deployment.
 
 ## The data
 
-`data/curves.npz` (8.9 MB, committed) holds everything the app needs:
+`data/curves.npz` (8.9 MB, committed) holds everything the app needs. `data/models/*.pkl`
+(~5.8 MB, also committed) are the trained models and calibration built from it -- pickled
+objects, so they are tied to the library versions in `uv.lock`. A code change that alters what
+gets cached bumps `CACHE_VERSION` in `artifacts.py`, which rebuilds them automatically; a bare
+dependency upgrade does not, and can make an old `.pkl` fail to load -- delete `data/models/` or
+run `spp2422-demo prepare --force` if that happens.
 
 | | |
 |---|---|
