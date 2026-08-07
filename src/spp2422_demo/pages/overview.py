@@ -51,7 +51,10 @@ def layout(**_kwargs):
     stations = {key: load_artifacts(key) for key in STATIONS}
     deep_drawing, ironing = stations["deep_drawing"], stations["ironing"]
     total_strokes = len(deep_drawing.data.curves)
-    n_runs = len(deep_drawing.data.runs())
+    # One run per wear-level combination, so name the grid rather than its size.
+    runs = deep_drawing.data.runs()
+    n_own = len({own for own, _ in runs})
+    n_other = len({other for _, other in runs})
     n_simulated = len(deep_drawing.data.sim_curves) + len(ironing.data.sim_curves)
 
     return html.Div(
@@ -67,7 +70,7 @@ def layout(**_kwargs):
                         stat_card(
                             "Measured strokes",
                             f"{total_strokes:,}".replace(",", " "),
-                            f"{n_runs} production runs, 500 strokes each",
+                            f"{n_own} × {n_other} production runs, 500 strokes each",
                         ),
                         md=3,
                     ),
