@@ -62,9 +62,27 @@ def _frame(figure: go.Figure, strokes: np.ndarray, title: str) -> go.Figure:
     return figure
 
 
-def wear_trend_figure(run: Run, strokes: np.ndarray) -> go.Figure:
+def _flag_bands(figure: go.Figure, flags: list[tuple[int, int]]) -> None:
+    """Shade the stretches an operator reported as bad parts."""
+    for start, end in flags:
+        figure.add_vrect(
+            x0=start,
+            x1=end,
+            fillcolor=_rgba(INK, 0.07),
+            line_width=0,
+            layer="below",
+            annotation_text="reported",
+            annotation_position="top left",
+            annotation={"font": {"size": 9, "color": MUTED}},
+        )
+
+
+def wear_trend_figure(
+    run: Run, strokes: np.ndarray, flags: list[tuple[int, int]] | None = None
+) -> go.Figure:
     """Both stations on the friction axis over the recent stretch of the run."""
     figure = go.Figure()
+    _flag_bands(figure, flags or [])
     _band(figure, 0.0, 0.35, GOOD)
     _band(figure, 0.35, 0.7, WATCH)
     _band(figure, 0.7, 1.0, CRITICAL)
@@ -98,9 +116,12 @@ def wear_trend_figure(run: Run, strokes: np.ndarray) -> go.Figure:
     return _frame(figure, strokes, "Pristine tool → worn tool")
 
 
-def alignment_trend_figure(run: Run, strokes: np.ndarray, tolerance_mm: float) -> go.Figure:
+def alignment_trend_figure(
+    run: Run, strokes: np.ndarray, tolerance_mm: float, flags: list[tuple[int, int]] | None = None
+) -> go.Figure:
     """Predicted offset at the cup, per stroke and smoothed, against the tolerance."""
     figure = go.Figure()
+    _flag_bands(figure, flags or [])
     ceiling = max(tolerance_mm * 1.35, float(run.alignment_mm[strokes].max()) * 1.15)
     _band(figure, 0.0, 0.75 * tolerance_mm, GOOD)
     _band(figure, 0.75 * tolerance_mm, tolerance_mm, WATCH)
@@ -219,7 +240,6 @@ def stroke_log(run: Run, stroke: int, tolerance_mm: float) -> dbc.Table:
             [
                 html.Th("Stroke"),
                 *(html.Th(STATIONS[key].name) for key in STATIONS),
-                html.Th("Wear axis, mean"),
                 html.Th("Off-centre"),
             ]
         )
@@ -242,9 +262,7 @@ def stroke_log(run: Run, stroke: int, tolerance_mm: float) -> dbc.Table:
                     ]
                 )
             )
-        axis = np.mean([run.position[key][index] for key in STATIONS])
         offset = run.alignment_mm[index]
-        cells.append(html.Td(f"{axis:.0%}"))
         cells.append(
             html.Td(
                 f"{offset:.2f} mm",

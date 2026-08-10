@@ -11,7 +11,11 @@ import dash_bootstrap_components as dbc
 import numpy as np
 from dash import dcc, html
 
-from ..data import STATIONS
+from ..artifacts import load_artifacts
+from ..data import LEVELS, STATIONS
+from ..excentricity import excentricity_mm, load_excentricity
+from ..explain import explain
+from ..feedback import FEEDBACK_STROKES, Report
 from ..health import (
     COLOR,
     GOOD,
@@ -23,6 +27,10 @@ from ..health import (
     worst,
 )
 from ..scenario import ALIGNMENT_WINDOW, WEAR_WINDOW, Run
+from ..theme import LEVEL_NAMES
+from .curve_figure import attribution_figure
+from .excentricity_figure import plateau_figure
+from .excentricity_figure import stroke_figure as excentricity_stroke_figure
 from .status_figures import (
     LOG_ROWS,
     alignment_dots,
@@ -39,6 +47,8 @@ CARDS = (MACHINE, WEAR, ALIGNMENT)
 # Strokes drawn on a card face and in its detail window.
 FACE_STROKES = 60
 DETAIL_STROKES = 100
+
+STAGE_NAMES = [LEVEL_NAMES[level] for level in LEVELS]
 
 CARD_TITLE = {
     MACHINE: "Machine status",
@@ -84,26 +94,46 @@ def _shell(card: str, state: str, *children, solid: bool = False) -> html.Div:
     )
 
 
-def _bar(name: str, fraction: float, state: str, note: str) -> html.Div:
-    """One labelled progress bar: a station's position between the two wear anchors."""
+def _stage_bar(name: str, stage: float, level: str, state: str, note: str) -> html.Div:
+    """How far a tool has worn down, on the three stages the shop floor already names.
+
+    The track is the whole journey, fresh to critical, divided where the stages divide.
+    The fill says how far down it the tool has come; the stage badge says which stage that
+    lands in. No percentage: a tool is in stage 2, not at 47%, and the stages are ordinal
+    classes with no measured roughness behind them -- a number would imply a precision
+    the labels never had.
+    """
+    fraction = float(np.clip((stage - LEVELS[0]) / (LEVELS[-1] - LEVELS[0]), 0.0, 1.0))
     return html.Div(
         [
             html.Div(
                 [
                     html.Span(name, className="bar-name"),
-                    html.Span(f"{fraction:.0%}", className="bar-value"),
+                    html.Span(level, className="stage-badge", style={"background": COLOR[state]}),
                 ],
                 className="bar-head",
             ),
             html.Div(
-                html.Div(
-                    style={
-                        "width": f"{np.clip(fraction, 0.01, 1.0):.1%}",
-                        "background": COLOR[state],
-                    },
-                    className="bar-fill",
-                ),
-                className="bar-track",
+                [
+                    html.Div(
+                        style={"width": f"{fraction:.1%}", "background": COLOR[state]},
+                        className="bar-fill",
+                    ),
+                    *(
+                        html.Div(
+                            className="stage-divider",
+                            style={"left": f"{index / (len(LEVELS) - 1):.2%}"},
+                        )
+                        # Only the boundaries between stages; the two ends are the track.
+                        for index in range(1, len(LEVELS) - 1)
+                    ),
+                    html.Div(className="stage-marker", style={"left": f"{fraction:.1%}"}),
+                ],
+                className="bar-track stage-track",
+            ),
+            html.Div(
+                [html.Span(name, className="stage-tick") for name in STAGE_NAMES],
+                className="stage-scale",
             ),
             html.Div(note, className="bar-note"),
         ],
@@ -145,13 +175,13 @@ def wear_card(signals: list[Signal]) -> html.Div:
         worst(signal.state for signal in wear_signals),
         html.Div(
             [
-                _bar(signal.name, signal.amount, signal.state, signal.detail)
+                _stage_bar(signal.name, signal.amount, signal.value, signal.state, signal.detail)
                 for signal in wear_signals
             ],
             className="wear-bars",
         ),
         html.Div(
-            f"0% is a pristine tool, 100% a worn-out one · mean of {WEAR_WINDOW} strokes",
+            f"How far the tools have worn down, over the last {WEAR_WINDOW} strokes",
             className="card-foot",
         ),
     )
@@ -204,9 +234,111 @@ def _graph(figure) -> dcc.Graph:
     return dcc.Graph(figure=figure, config={"displayModeBar": False})
 
 
-def detail(card: str, run: Run, stroke: int, tolerance_mm: float) -> tuple[str, html.Div]:
+def _station_stroke(run: Run, station_key: str, stroke: int) -> html.Div:
+    """One stroke at one station, read the way the station pages read it.
+
+    The same force curve, the same time-resolved attribution, the same confidence split --
+    so an engineer who has seen the Deep Drawing page recognises this immediately, and the
+    board is not a second, unrelated account of the same model.
+    """
+    trained = load_artifacts(station_key)
+    data = trained.data
+    row = run.rows[stroke]
+    level = run.level(station_key, stroke)
+    peak_ref = data.peak_ref[row] if data.peak_ref is not None else None
+    attribution = explain(trained.models[trained.default_model], data.curves[row], peak_ref, level)
+
+    return html.Div(
+        [
+            html.Div(
+                [
+                    html.Span(f"Stroke {stroke + 1}", className="card-title"),
+                    html.Span(run.model_name[station_key], className="card-model"),
+                ],
+                className="card-head mt-3",
+            ),
+            _graph(attribution_figure(data, row, attribution)),
+            html.Div(attribution.summary(STATIONS[station_key].name), className="section-note"),
+            confidence_bars(run, station_key, stroke),
+        ]
+    )
+
+
+def _alignment_stroke(run: Run, stroke: int) -> html.Div:
+    """One stroke's punch force and the line fitted across its plateau.
+
+    The misalignment model reads two numbers off this window and nothing else, so the
+    fitted line *is* the explanation -- the same pair of views the Excentricity page uses.
+    """
+    data = load_excentricity()
+    index = run.alignment_rows[stroke]
+    return html.Div(
+        [
+            html.Div(f"Stroke {stroke + 1}", className="card-title mt-3"),
+            dbc.Row(
+                [
+                    dbc.Col(_graph(excentricity_stroke_figure(data, index)), lg=6),
+                    dbc.Col(_graph(plateau_figure(data, index)), lg=6),
+                ],
+                className="g-3",
+            ),
+            html.Div(
+                f"This stroke's plateau tilts at {data.slope_kn_per_s(index):+.2f} kN/s, which "
+                f"the forest reads as {excentricity_mm(data.predicted[index]):.2f} mm off "
+                f"centre. It was actually fed at {run.alignment_true_mm[stroke]:.2f} mm.",
+                className="section-note",
+            ),
+        ]
+    )
+
+
+def _reports_panel(reports: list[Report]) -> html.Div:
+    """What the operator has reported, against what the monitor was saying at the time."""
+    if not reports:
+        return html.Div(
+            f"No operator reports yet. Use *Report bad parts* to mark the last "
+            f"{FEEDBACK_STROKES} strokes; it records what the monitor said over the same "
+            "window, which is the pair a label-collection loop needs. It does not retrain "
+            "anything -- the models here are fixed.",
+            className="section-note mt-3",
+        )
+    return html.Div(
+        [
+            html.Div("Operator reports", className="card-title mt-3"),
+            *(
+                html.Div(
+                    [
+                        html.Div(
+                            [
+                                html.Span("Bad parts", className="report-tag"),
+                                html.Span(item.label, className="report-range"),
+                            ],
+                            className="report-head",
+                        ),
+                        html.Div(item.readings(), className="report-readings"),
+                        html.Div(item.disagreement(), className="report-verdict"),
+                    ],
+                    className="report",
+                )
+                for item in reversed(reports)
+            ),
+            html.Div(
+                "Captured, not learned from: one operator's verdict on one window is not a "
+                "training set, and the models on this board are fixed. The step being shown "
+                "is the one missing from every dataset in this project -- which is why the "
+                "intermediate wear state has no labels to train on in the first place.",
+                className="section-note mt-2",
+            ),
+        ]
+    )
+
+
+def detail(
+    card: str, run: Run, stroke: int, tolerance_mm: float, reports: list[Report]
+) -> tuple[str, html.Div]:
     """Title and body of the window a card opens into."""
     strokes = run.window(stroke, DETAIL_STROKES)
+    flags = [(item.start, item.end) for item in reports]
     state, signals = machine_state(run, stroke, tolerance_mm)
     log = html.Div(
         [
@@ -219,32 +351,23 @@ def detail(card: str, run: Run, stroke: int, tolerance_mm: float) -> tuple[str, 
     if card == WEAR:
         return "Tool wear", html.Div(
             [
-                _graph(wear_trend_figure(run, strokes)),
-                dbc.Row(
+                _graph(wear_trend_figure(run, strokes, flags)),
+                html.Div(
+                    "Where the last strokes place each tool between the two anchors. "
+                    "Continuous, and far noisier than the stage the card reports -- the "
+                    "two can disagree, and the classifier is the accurate one.",
+                    className="section-note mt-1 mb-3",
+                ),
+                dbc.Tabs(
                     [
-                        dbc.Col(
-                            [
-                                html.Div(
-                                    [
-                                        html.Span(STATIONS[key].name, className="card-title"),
-                                        html.Span(run.model_name[key], className="card-model"),
-                                    ],
-                                    className="card-head",
-                                ),
-                                confidence_bars(run, key, stroke),
-                            ],
-                            md=6,
+                        dbc.Tab(
+                            _station_stroke(run, key, stroke),
+                            label=STATIONS[key].name,
+                            tab_id=key,
                         )
                         for key in STATIONS
                     ],
-                    className="mt-2",
-                ),
-                html.Div(
-                    "The bars are the classifier on this one stroke; the card reads the "
-                    f"majority over {WEAR_WINDOW}. The trend is the friction axis, which is "
-                    "continuous but far noisier -- the two can disagree, and the classifier "
-                    "is the accurate one.",
-                    className="section-note mt-2",
+                    active_tab=next(iter(STATIONS)),
                 ),
                 log,
             ]
@@ -253,14 +376,15 @@ def detail(card: str, run: Run, stroke: int, tolerance_mm: float) -> tuple[str, 
     if card == ALIGNMENT:
         return "Strip alignment", html.Div(
             [
-                _graph(alignment_trend_figure(run, strokes, tolerance_mm)),
+                _graph(alignment_trend_figure(run, strokes, tolerance_mm, flags)),
                 html.Div(
                     "Only the feed direction is measured -- the campaign varied strip "
                     "overfeed along one axis, so there is no second axis to predict. "
                     f"The alarm reads the mean of {ALIGNMENT_WINDOW} strokes, which a "
                     "single stroke's scatter would otherwise trip on its own.",
-                    className="section-note mt-2",
+                    className="section-note mt-1 mb-3",
                 ),
+                _alignment_stroke(run, stroke),
                 log,
             ]
         )
@@ -282,6 +406,7 @@ def detail(card: str, run: Run, stroke: int, tolerance_mm: float) -> tuple[str, 
                 ],
                 className="signal-list",
             ),
+            _reports_panel(reports),
             log,
         ]
     )

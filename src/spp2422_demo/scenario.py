@@ -1,11 +1,11 @@
-"""Two press runs to watch on the status board, assembled from measured strokes.
+"""The press run the status board watches, assembled from measured strokes.
 
 The board wants something the underlying data does not contain: a press that runs for
 hundreds of strokes while its tools gradually go off. What was actually recorded is nine
 production runs at *fixed* wear levels and seven misalignment series at *fixed* infeed --
 snapshots of states, never a transition between them.
 
-So a scenario is a **schedule**, and only the schedule is authored:
+So the run is a **schedule**, and only the schedule is authored:
 
     stroke 0 ............................................. stroke 300
     wear      T1/A1 ====\\____ T2/A2 ____/==== T3/A3
@@ -53,51 +53,19 @@ ALIGNMENT_WINDOW = 10
 # How the recorded wear levels are laid out along the run: (level, stroke it takes over).
 # Levels crossfade over TRANSITION strokes, drawing from both runs with a ramping
 # probability, so the rolling mean drifts across a transition instead of stepping.
-STABLE_WEAR = ((1, 0),)
-DEGRADING_WEAR = ((1, 0), (2, 110), (3, 215))
+WEAR_STAGES = ((1, 0), (2, 110), (3, 215))
 TRANSITION = 60
 
-# Infeed the board is fed, in hundredths of a millimetre of overfeed. A stable press sits
-# at the two lowest recorded levels; a drifting one walks the series as they were run.
-STABLE_INFEED = (0, 5)
-DEGRADING_INFEED_START = 60  # strokes of good alignment before the drift sets in
-DEGRADING_INFEED_HOLD = 40  # strokes spent at each recorded level on the way up
-
-
-@dataclass(frozen=True)
-class Scenario:
-    """One authored press run: what it is called, and what the schedule does."""
-
-    key: str
-    name: str
-    wear_stages: tuple[tuple[int, int], ...]
-    infeed: str  # "stable" or "drifting"
-
-
-SCENARIOS = {
-    scenario.key: scenario
-    for scenario in (
-        Scenario(
-            key="stable",
-            name="Normal production",
-            wear_stages=STABLE_WEAR,
-            infeed="stable",
-        ),
-        Scenario(
-            key="degrading",
-            name="Tool wear and drifting strip",
-            wear_stages=DEGRADING_WEAR,
-            infeed="drifting",
-        ),
-    )
-}
+# The strip drifts off centre independently of the tools: a stretch of good alignment,
+# then a walk up through the recorded infeed series in the order they were run.
+INFEED_START = 60  # strokes before the drift sets in
+INFEED_HOLD = 40  # strokes spent at each recorded level on the way up
 
 
 @dataclass(frozen=True)
 class Run:
     """Everything the board reads, one entry per stroke of the scenario."""
 
-    scenario: Scenario
     wear_level: np.ndarray  # (N,) the recorded run each stroke was drawn from, 1..3
     position: dict[str, np.ndarray]  # station -> (N,) 0 = pristine anchor, 1 = worn
     proba: dict[str, np.ndarray]  # station -> (N, 3) classifier probabilities
@@ -105,6 +73,7 @@ class Run:
     rows: np.ndarray  # (N,) row into the measured extract; the same stroke at both stations
     alignment_mm: np.ndarray  # (N,) predicted offset at the cup, out of fold
     alignment_true_mm: np.ndarray  # (N,) the offset its series was actually run at
+    alignment_rows: np.ndarray  # (N,) row into the misalignment dataset, for the stroke view
 
     def level(self, station_key: str, stroke: int) -> int:
         """The classifier's call for one stroke: wear level 1..3."""
@@ -139,21 +108,19 @@ def _draw_order(rows: np.ndarray, rng: np.random.Generator, count: int) -> np.nd
     return np.concatenate(passes)[:count]
 
 
-def _wear_schedule(stages: tuple[tuple[int, int], ...], rng: np.random.Generator) -> np.ndarray:
+def _wear_schedule(rng: np.random.Generator) -> np.ndarray:
     """Which recorded wear level each stroke is drawn from, with crossfaded transitions."""
-    level = np.full(N_STROKES, stages[0][0], dtype=int)
-    for (_, _), (new_level, start) in zip(stages, stages[1:], strict=False):
+    level = np.full(N_STROKES, WEAR_STAGES[0][0], dtype=int)
+    for (_, _), (new_level, start) in zip(WEAR_STAGES, WEAR_STAGES[1:], strict=False):
         half = TRANSITION // 2
         ramp = np.clip((np.arange(N_STROKES) - (start - half)) / TRANSITION, 0.0, 1.0)
         level = np.where(rng.random(N_STROKES) < ramp, new_level, level)
     return level
 
 
-def _infeed_schedule(mode: str, rng: np.random.Generator) -> np.ndarray:
+def _infeed_schedule() -> np.ndarray:
     """Which recorded infeed series each stroke is drawn from."""
-    if mode == "stable":
-        return rng.choice(STABLE_INFEED, size=N_STROKES)
-    step = (np.arange(N_STROKES) - DEGRADING_INFEED_START) // DEGRADING_INFEED_HOLD + 1
+    step = (np.arange(N_STROKES) - INFEED_START) // INFEED_HOLD + 1
     return np.array(INFEED_LEVELS)[np.clip(step, 0, len(INFEED_LEVELS) - 1)]
 
 
@@ -198,24 +165,22 @@ def _classify(station_key: str, rows: np.ndarray) -> tuple[np.ndarray, str]:
 
 
 @cache
-def load_run(scenario_key: str) -> Run:
-    """Assemble one scenario. Cached -- the schedule is deterministic."""
-    scenario = SCENARIOS[scenario_key]
+def load_run() -> Run:
+    """Assemble the run. Cached -- the schedule is deterministic."""
     rng = np.random.default_rng(SEED)
 
-    wear_level = _wear_schedule(scenario.wear_stages, rng)
+    wear_level = _wear_schedule(rng)
     rows = _stroke_rows(wear_level)
     classified = {key: _classify(key, rows) for key in STATIONS}
 
     alignment = load_excentricity()
-    infeed_level = _infeed_schedule(scenario.infeed, rng)
+    infeed_level = _infeed_schedule()
     alignment_rows = np.empty(N_STROKES, dtype=int)
     for level in INFEED_LEVELS:
         strokes = np.flatnonzero(infeed_level == level)
         alignment_rows[strokes] = _draw_order(alignment.series_rows(level), rng, len(strokes))
 
     return Run(
-        scenario=scenario,
         wear_level=wear_level,
         position={key: load_artifacts(key).wear.display(rows) for key in STATIONS},
         proba={key: classified[key][0] for key in STATIONS},
@@ -223,4 +188,5 @@ def load_run(scenario_key: str) -> Run:
         rows=rows,
         alignment_mm=np.array([excentricity_mm(v) for v in alignment.predicted[alignment_rows]]),
         alignment_true_mm=np.array([excentricity_mm(v) for v in infeed_level]),
+        alignment_rows=alignment_rows,
     )

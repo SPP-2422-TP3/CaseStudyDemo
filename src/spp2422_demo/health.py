@@ -9,11 +9,13 @@ Which instrument decides is deliberate, and the two are not interchangeable:
 - The **state** comes from the classifier, taken as the majority call over the last
   `WEAR_WINDOW` strokes. That is the accurate instrument (100% and 99% on held-out
   strokes), and the intermediate level is itself the state worth stopping for.
-- The **percentage** comes from the friction axis, which is continuous and so can show a
-  tool approaching a level rather than only arriving at one. It is much noisier, and it is
-  never what raises an alarm.
+- The **placement inside the three stages** comes from the same classifier, read as the
+  mean of its probabilities over that window rather than as a count of its calls. That
+  says how firmly it holds its answer, so a tool drifting toward the next stage sits
+  between the two instead of jumping when the majority tips.
 
-The two can disagree, and a board that hid that would be lying about its own certainty.
+Both therefore come from one instrument, on one scale the shop floor already uses. The
+continuous friction axis is a different question and stays in the detail window.
 """
 
 from __future__ import annotations
@@ -22,7 +24,7 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from .data import STATIONS
+from .data import LEVELS, STATIONS
 from .scenario import ALIGNMENT_WINDOW, WEAR_WINDOW, Run
 from .theme import LEVEL_COLORS
 
@@ -69,17 +71,16 @@ def worst(states) -> str:
 
 
 def wear_signal(run: Run, station_key: str, stroke: int) -> Signal:
-    """Wear at one station: the majority classification, with the friction axis alongside."""
+    """Wear at one station: which of the three stages, and where inside it."""
     level = majority_level(run, station_key, stroke)
-    position = run.smoothed_position(station_key, stroke)
     station = STATIONS[station_key]
     return Signal(
         key=station_key,
         name=station.name,
         state=WEAR_STATE[level],
-        amount=position,
-        value=f"{position:.0%}",
-        detail=f"classified {station.level_name(level)} over the last {WEAR_WINDOW} strokes",
+        amount=wear_stage(run, station_key, stroke),
+        value=station.level_name(level),
+        detail=f"over the last {WEAR_WINDOW} strokes",
     )
 
 
@@ -88,6 +89,19 @@ def majority_level(run: Run, station_key: str, stroke: int) -> int:
     window = run.window(stroke, WEAR_WINDOW)
     calls = run.proba[station_key][window].argmax(axis=1) + 1
     return int(np.bincount(calls, minlength=4)[1:].argmax()) + 1
+
+
+def wear_stage(run: Run, station_key: str, stroke: int) -> float:
+    """Where the trailing window places the tool on the 1..3 stage scale, between stages.
+
+    The classifier already says which stage a stroke is in. Averaging its probabilities
+    over the window -- rather than counting its calls -- says how firmly, so a tool whose
+    strokes are starting to read as the next stage sits visibly between the two rather
+    than jumping when the majority tips. It is the same instrument as the badge, read
+    more finely; nothing new is claimed by it.
+    """
+    proba = run.proba[station_key][run.window(stroke, WEAR_WINDOW)]
+    return float((proba * np.array(LEVELS)).sum(axis=1).mean())
 
 
 def alignment_state(value_mm: float, tolerance_mm: float) -> str:

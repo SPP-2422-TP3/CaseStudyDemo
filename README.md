@@ -26,33 +26,45 @@ about *how* the models work sits behind the **Details** menu:
 
 ## The status board
 
-Two press runs can be selected, and both are **assembled, not recorded**. Every stroke on screen is
-a real measured stroke shown with its own model's prediction; what is authored is the order they
-arrive in. The data holds nine production runs at *fixed* wear levels and seven feed series at
-*fixed* infeed — snapshots of states, never a transition between them — so a run that degrades has
-to be scheduled:
-
-| | wear | strip feed |
-|---|---|---|
-| **Normal production** | fresh tools throughout | the two lowest recorded infeeds |
-| **Tool wear and drifting strip** | T1/A1 → T2/A2 → T3/A3, crossfaded | ramped 60.00 → 60.30 mm |
+The run it watches is **assembled, not recorded**. Every stroke on screen is a real measured stroke
+shown with its own model's prediction; what is authored is the order they arrive in. The data holds
+nine production runs at *fixed* wear levels and seven feed series at *fixed* infeed — snapshots of
+states, never a transition between them — so a run that degrades has to be scheduled: the tools walk
+T1/A1 → T2/A2 → T3/A3 with crossfaded transitions while the strip feed ramps 60.00 → 60.30 mm.
 
 Two further compositions: wear and misalignment come from separate measurement campaigns on separate
 tooling, and the first strokes of each block are skipped because a cold die reads as a briefly worn
-one. The board itself is laid out as press-side equipment and carries none of this — a shop-floor
-screen is not where a caveat gets read — so it lives in the **Help** glossary instead.
+one. The board itself is laid out as press-side equipment, without even the site's top bar, and
+carries none of this — a shop-floor screen is not where a caveat gets read — so it lives in the
+**Help** glossary instead.
 
-Each signal is read by the instrument that suits it. The **state** — good, watch, stop — comes from
-the classifier, as the majority call over the last 20 strokes, because that is the accurate
-instrument and the intermediate level is itself the state worth stopping for. The **percentage**
-comes from the friction axis of `wear_position.py`, which is continuous and so can show a tool
-approaching a level rather than only arriving at one. It is far noisier, and it never raises an
-alarm. The two can disagree, and the detail window says so rather than hiding it.
+Tool wear is reported on the three stages the shop floor already names — **fresh, worn, critical**,
+the T1–T3 and A1–A3 of the trials. The stage badge is the classifier's majority call over the last
+20 strokes; the marker's position along the track is the mean of the same classifier's probabilities
+over that window, so a tool drifting toward the next stage sits between the two instead of jumping
+when the majority tips. One instrument, read coarsely and finely.
 
-A percentage there is a position between a pristine tool and a worn one — **not** a fraction of life
-consumed. Nothing in this data records when a tool was retired, so there is no remaining-life number
-to report, and the board does not invent one. Strip misalignment is likewise **one axis only**: the
-campaign varied overfeed along the feed direction, so there is no second axis to predict.
+There is no percentage, deliberately. The levels are ordinal classes with no measured roughness
+behind them, nothing in the data records when a tool was retired, and so no fraction of life
+consumed can be computed — the board does not invent one. The continuous friction axis of
+`wear_position.py` is a different question and stays in the detail window, labelled as such. Strip
+misalignment is likewise **one axis only**: the campaign varied overfeed along the feed direction,
+so there is no second axis to predict.
+
+Each card opens into the same per-stroke views the research pages use — the time-resolved
+attribution over the force curve for wear, the fitted plateau line for misalignment — so an engineer
+who has seen those pages recognises the board immediately.
+
+### Operator feedback
+
+*Report bad parts* marks the last 60 strokes and records what the monitor was saying over the same
+window. That is the pair a label-collection loop needs: an operator's verdict on a stretch of
+production, against the models' reading of it. The interesting report is the one where every signal
+read normal and the parts did not.
+
+It **does not retrain anything** — the models are fixed, and one report is not a training set. What
+it demonstrates is the capture step, which is precisely what is missing from every dataset in this
+project: it is why the intermediate wear state has no labels to train on in the first place.
 
 ## Run it
 

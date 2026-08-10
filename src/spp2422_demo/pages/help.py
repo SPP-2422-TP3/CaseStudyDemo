@@ -196,8 +196,9 @@ GLOSSARY = [
         "The landing page, and an assembled press run rather than a recording. Every stroke on "
         "it is a real measured stroke shown with its own model's prediction; the order they "
         "arrive in is authored, because the data holds fixed wear levels and fixed infeeds but "
-        "no transition between them. Wear and misalignment also come from two separate "
-        "campaigns on separate tooling.",
+        "no transition between them — the tools are scheduled to walk from fresh to critical "
+        "while the strip drifts off centre. Wear and misalignment also come from two separate "
+        "campaigns on separate tooling, so showing them as one machine is a composition.",
     ),
     (
         "Good, watch, stop",
@@ -207,12 +208,22 @@ GLOSSARY = [
         "mean of 10 against a tolerance that is set for the demo, not taken from the trials.",
     ),
     (
-        "The wear percentage",
-        "Where a stroke sits between a pristine tool and a worn-out one on the friction axis: "
-        "0 at one anchor, 1 at the other. It is continuous, so it can show a tool approaching "
-        "a level rather than only arriving at one — and it is far noisier than the classifier, "
-        "so it never raises an alarm on its own. It is not a fraction of life consumed; nothing "
-        "in this data records when a tool was retired.",
+        "The wear stage track",
+        "How far a tool has worn down, on the three stages the trials already name. The badge "
+        "is the classifier's majority call over the last 20 strokes; the marker's position is "
+        "the mean of that same classifier's probabilities over the window, so a tool drifting "
+        "toward the next stage sits between the two rather than jumping when the majority "
+        "tips. No percentage: the levels are ordinal classes with no measured roughness "
+        "behind them, and nothing here records when a tool was retired, so no fraction of "
+        "life consumed exists to report.",
+    ),
+    (
+        "Report bad parts",
+        "The operator knows what the parts look like, which the force signals do not. Pressing "
+        "it marks the last 60 strokes and records what the monitor was saying over the same "
+        "window — the pair a label-collection loop needs. It retrains nothing; the models here "
+        "are fixed. It demonstrates the capture step, which is exactly what is missing from "
+        "every dataset in this project, and why the intermediate wear state has no labels.",
     ),
     (
         "T1 – T3 and A1 – A3",

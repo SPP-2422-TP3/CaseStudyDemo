@@ -661,9 +661,8 @@ body {
 }
 
 .bar-name { font-size: 0.92rem; }
-.bar-value { font-size: 1.5rem; }
 .bar-track { height: 12px; }
-.wear-bar + .wear-bar { margin-top: 1.1rem; }
+.wear-bar + .wear-bar { margin-top: 1.3rem; }
 
 .alignment-head .stat-value { font-size: 2.6rem; line-height: 1; }
 
@@ -695,3 +694,98 @@ body {
 }
 
 .hmi-link:hover { text-decoration: underline; }
+
+/* ---- the three-stage wear track ---------------------------------------- */
+
+.stage-badge {
+  border-radius: 4px;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  padding: 0.1rem 0.45rem;
+}
+
+.stage-track { position: relative; overflow: visible; }
+
+.stage-divider {
+  background: var(--surface);
+  height: 100%;
+  position: absolute;
+  top: 0;
+  width: 2px;
+}
+
+.stage-marker {
+  background: var(--ink);
+  border: 2px solid var(--surface);
+  border-radius: 50%;
+  height: 16px;
+  margin-left: -8px;
+  position: absolute;
+  top: -2px;
+  transition: left 0.3s ease;
+  width: 16px;
+}
+
+.stage-scale {
+  color: var(--muted);
+  display: flex;
+  font-size: 0.7rem;
+  justify-content: space-between;
+  margin-top: 0.3rem;
+}
+
+.stage-tick:nth-child(2) { transform: translateX(-50%); margin-left: 50%; position: absolute; }
+.stage-scale { position: relative; }
+
+/* ---- operator feedback -------------------------------------------------- */
+
+.hmi-report {
+  background: rgb(255 255 255 / 6%);
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+  min-width: 0;
+  text-transform: none;
+}
+
+.report-strip {
+  align-items: baseline;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--ink);
+  border-radius: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-bottom: 0.5rem;
+  padding: 0.55rem 0.9rem;
+}
+
+.strip-icon { font-size: 0.95rem; }
+.strip-count { font-weight: 700; font-size: 0.86rem; }
+.strip-detail { font-size: 0.86rem; }
+.strip-verdict { color: var(--muted); font-size: 0.82rem; }
+
+.report {
+  border-left: 3px solid var(--ink);
+  margin-top: 0.55rem;
+  padding: 0.4rem 0.75rem;
+}
+
+.report-head { align-items: baseline; display: flex; gap: 0.5rem; }
+
+.report-tag {
+  background: var(--ink);
+  border-radius: 3px;
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 0.08rem 0.35rem;
+  text-transform: uppercase;
+}
+
+.report-range { font-weight: 600; font-size: 0.88rem; }
+.report-readings { font-size: 0.84rem; font-variant-numeric: tabular-nums; }
+.report-verdict { color: var(--muted); font-size: 0.82rem; }

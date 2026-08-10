@@ -16,8 +16,9 @@ import dash_bootstrap_components as dbc
 from dash import ALL, Input, Output, State, callback, ctx, dcc, html, no_update
 
 from spp2422_demo.components.status_cards import board, detail
+from spp2422_demo.feedback import FEEDBACK_STROKES, from_store, report, to_store
 from spp2422_demo.health import DEFAULT_TOLERANCE_MM
-from spp2422_demo.scenario import N_STROKES, SCENARIOS, WEAR_WINDOW, load_run
+from spp2422_demo.scenario import N_STROKES, WEAR_WINDOW, load_run
 
 dash.register_page(__name__, path="/", name="Status", order=0, top_level=True)
 
@@ -49,6 +50,11 @@ def _machine_bar() -> html.Div:
             ),
             html.Div(
                 [
+                    dbc.Button(
+                        f"⚑ Report bad parts · last {FEEDBACK_STROKES}",
+                        id="status-report",
+                        className="hmi-button hmi-report",
+                    ),
                     html.Span(id="status-live-dot", className="hmi-dot"),
                     dbc.Button("Run", id="status-play", className="hmi-button"),
                 ],
@@ -87,21 +93,6 @@ def _controls() -> html.Div:
                 [
                     dbc.Col(
                         [
-                            html.Div("Press run", className="form-label"),
-                            dcc.Dropdown(
-                                id="status-scenario",
-                                options=[
-                                    {"label": scenario.name, "value": key}
-                                    for key, scenario in SCENARIOS.items()
-                                ],
-                                value=next(iter(SCENARIOS)),
-                                clearable=False,
-                            ),
-                        ],
-                        lg=4,
-                    ),
-                    dbc.Col(
-                        [
                             html.Div("Jump to stroke", className="form-label"),
                             dcc.Slider(
                                 id="status-stroke",
@@ -116,7 +107,7 @@ def _controls() -> html.Div:
                                 tooltip={"placement": "bottom", "always_visible": False},
                             ),
                         ],
-                        lg=5,
+                        lg=8,
                     ),
                     dbc.Col(
                         [
@@ -133,7 +124,7 @@ def _controls() -> html.Div:
                                 },
                             ),
                         ],
-                        lg=3,
+                        lg=4,
                     ),
                 ],
                 className="g-4 align-items-end",
@@ -149,8 +140,10 @@ def layout(**_kwargs):
         [
             _machine_bar(),
             html.Div(id="status-board", className="hmi-board"),
+            html.Div(id="status-reports-strip"),
             _controls(),
             dcc.Interval(id="status-interval", interval=STREAM_INTERVAL_MS, disabled=True),
+            dcc.Store(id="status-reports", data=[]),
             dbc.Modal(
                 [
                     dbc.ModalHeader(dbc.ModalTitle(id="status-modal-title")),
@@ -169,16 +162,51 @@ def layout(**_kwargs):
 @callback(
     Output("status-board", "children"),
     Output("status-counter", "children"),
-    Input("status-scenario", "value"),
     Input("status-stroke", "value"),
     Input("status-tolerance", "value"),
 )
-def _board(scenario_key, stroke, tolerance):
+def _board(stroke, tolerance):
     counter = [
         html.Span(f"{stroke + 1:,}".replace(",", " "), className="hmi-counter-value"),
         html.Span(f"/ {N_STROKES}", className="hmi-counter-total"),
     ]
-    return board(load_run(scenario_key), stroke, tolerance), counter
+    return board(load_run(), stroke, tolerance), counter
+
+
+@callback(
+    Output("status-reports", "data"),
+    Input("status-report", "n_clicks"),
+    State("status-reports", "data"),
+    State("status-stroke", "value"),
+    State("status-tolerance", "value"),
+    prevent_initial_call=True,
+)
+def _record_report(_clicks, stored, stroke, tolerance):
+    """Take the operator's word for it and record what the monitor said at the time."""
+    reports = from_store(stored)
+    reports.append(report(load_run(), stroke, tolerance))
+    return to_store(reports)
+
+
+@callback(
+    Output("status-reports-strip", "children"),
+    Input("status-reports", "data"),
+)
+def _reports_strip(stored):
+    """A one-line acknowledgement on the board; the detail window carries the rest."""
+    reports = from_store(stored)
+    if not reports:
+        return None
+    latest = reports[-1]
+    return html.Div(
+        [
+            html.Span("⚑", className="strip-icon"),
+            html.Span(f"{len(reports)} operator report(s)", className="strip-count"),
+            html.Span(f"latest: bad parts at {latest.label}", className="strip-detail"),
+            html.Span(latest.disagreement(), className="strip-verdict"),
+        ],
+        className="report-strip",
+    )
 
 
 @callback(
@@ -210,15 +238,17 @@ def _toggle(_clicks, disabled):
     Output("status-modal-title", "children"),
     Output("status-modal-body", "children"),
     Input({"type": "status-card", "card": ALL}, "n_clicks"),
-    State("status-scenario", "value"),
     State("status-stroke", "value"),
     State("status-tolerance", "value"),
+    State("status-reports", "data"),
     prevent_initial_call=True,
 )
-def _open_detail(clicks, scenario_key, stroke, tolerance):
+def _open_detail(clicks, stroke, tolerance, stored):
     # Dash fires this when the board is rebuilt as well as when a card is clicked; only
     # an actual click carries a count on the card that triggered it.
     if not ctx.triggered_id or not any(clicks or []):
         return no_update, no_update, no_update
-    title, body = detail(ctx.triggered_id["card"], load_run(scenario_key), stroke, tolerance)
+    title, body = detail(
+        ctx.triggered_id["card"], load_run(), stroke, tolerance, from_store(stored)
+    )
     return True, title, body
