@@ -9,7 +9,14 @@ from spp2422_demo.artifacts import load_artifacts
 from spp2422_demo.calibration import CENTRE, ENDPOINTS
 from spp2422_demo.components.status_cards import CARDS, board, detail
 from spp2422_demo.data import LEVELS, STATIONS
-from spp2422_demo.feedback import FEEDBACK_STROKES, from_store, report, to_store
+from spp2422_demo.feedback import (
+    FEEDBACK_STROKES,
+    ISSUES,
+    WINDOW_CHOICES,
+    from_store,
+    report,
+    to_store,
+)
 from spp2422_demo.health import (
     CRITICAL,
     DEFAULT_TOLERANCE_MM,
@@ -118,26 +125,37 @@ def test_every_card_and_detail_window_renders():
 def test_a_detail_window_renders_with_operator_reports():
     run = load_run()
     stroke = N_STROKES - 1
-    reports = [report(run, stroke, TOLERANCE)]
+    reports = [report(run, stroke, FEEDBACK_STROKES, ISSUES[0][0], "left wall tore")]
     for card in CARDS:
         title, body = detail(card, run, stroke, TOLERANCE, reports)
         assert title and body is not None
 
 
-def test_a_report_covers_the_trailing_window_and_survives_the_store():
+def test_a_report_covers_the_window_the_operator_chose():
     run = load_run()
     stroke = N_STROKES - 1
-    item = report(run, stroke, TOLERANCE)
-    assert item.end == stroke
-    assert item.end - item.start + 1 == FEEDBACK_STROKES
+    for window in WINDOW_CHOICES:
+        item = report(run, stroke, window, ISSUES[0][0], "")
+        assert item.end == stroke
+        assert item.end - item.start + 1 == window
     assert set(item.called) == set(STATIONS)
-    # The store round-trip is JSON, so the dataclass has to survive it unchanged.
+
+
+def test_a_report_survives_the_store_round_trip():
+    """The store is JSON, so the dataclass has to come back out unchanged."""
+    item = report(load_run(), N_STROKES - 1, FEEDBACK_STROKES, ISSUES[1][0], "  cup off  ")
+    assert item.note == "cup off"  # whitespace is the operator's, not the record's
     assert from_store(to_store([item])) == [item]
+
+
+def test_a_report_names_the_defect_it_was_given():
+    item = report(load_run(), N_STROKES - 1, FEEDBACK_STROKES, ISSUES[2][0], "")
+    assert item.issue_label == dict(ISSUES)[ISSUES[2][0]]
 
 
 def test_a_report_says_whether_the_monitor_had_already_raised_it():
     run = load_run()
-    early = report(run, FIRST_STROKE, TOLERANCE)
-    late = report(run, N_STROKES - 1, TOLERANCE)
+    early = report(run, FIRST_STROKE, FEEDBACK_STROKES, ISSUES[0][0], "")
+    late = report(run, N_STROKES - 1, FEEDBACK_STROKES, ISSUES[0][0], "")
     assert "read every signal as normal" in early.disagreement()
     assert "already raised" in late.disagreement()

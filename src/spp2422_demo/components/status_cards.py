@@ -28,7 +28,7 @@ from ..health import (
 )
 from ..scenario import ALIGNMENT_WINDOW, WEAR_WINDOW, Run
 from ..theme import LEVEL_NAMES
-from .curve_figure import attribution_figure
+from .curve_figure import attribution_figure, stroke_figure
 from .excentricity_figure import plateau_figure
 from .excentricity_figure import stroke_figure as excentricity_stroke_figure
 from .status_figures import (
@@ -257,6 +257,13 @@ def _station_stroke(run: Run, station_key: str, stroke: int) -> html.Div:
                 ],
                 className="card-head mt-3",
             ),
+            _graph(stroke_figure(data, row, label=f"Stroke {stroke + 1}")),
+            html.Div(
+                "The measured force curve for this stroke, against the mean curve of each "
+                "wear level. Below: the same stroke coloured by where the model found its "
+                "evidence.",
+                className="section-note",
+            ),
             _graph(attribution_figure(data, row, attribution)),
             html.Div(attribution.summary(STATIONS[station_key].name), className="section-note"),
             confidence_bars(run, station_key, stroke),
@@ -296,10 +303,10 @@ def _reports_panel(reports: list[Report]) -> html.Div:
     """What the operator has reported, against what the monitor was saying at the time."""
     if not reports:
         return html.Div(
-            f"No operator reports yet. Use *Report bad parts* to mark the last "
-            f"{FEEDBACK_STROKES} strokes; it records what the monitor said over the same "
-            "window, which is the pair a label-collection loop needs. It does not retrain "
-            "anything -- the models here are fixed.",
+            f"No operator reports yet. *Report bad parts* asks how far back the parts were "
+            f"bad -- {FEEDBACK_STROKES} strokes by default -- and what was wrong with them, "
+            "then records what the monitor said over the same window. That pair is what a "
+            "label-collection loop needs. It does not retrain anything; the models are fixed.",
             className="section-note mt-3",
         )
     return html.Div(
@@ -310,10 +317,15 @@ def _reports_panel(reports: list[Report]) -> html.Div:
                     [
                         html.Div(
                             [
-                                html.Span("Bad parts", className="report-tag"),
+                                html.Span(item.issue_label, className="report-tag"),
                                 html.Span(item.label, className="report-range"),
                             ],
                             className="report-head",
+                        ),
+                        *(
+                            [html.Div(f"“{item.note}”", className="report-note")]
+                            if item.note
+                            else []
                         ),
                         html.Div(item.readings(), className="report-readings"),
                         html.Div(item.disagreement(), className="report-verdict"),

@@ -16,7 +16,14 @@ import dash_bootstrap_components as dbc
 from dash import ALL, Input, Output, State, callback, ctx, dcc, html, no_update
 
 from spp2422_demo.components.status_cards import board, detail
-from spp2422_demo.feedback import FEEDBACK_STROKES, from_store, report, to_store
+from spp2422_demo.feedback import (
+    FEEDBACK_STROKES,
+    ISSUES,
+    WINDOW_CHOICES,
+    from_store,
+    report,
+    to_store,
+)
 from spp2422_demo.health import DEFAULT_TOLERANCE_MM
 from spp2422_demo.scenario import N_STROKES, WEAR_WINDOW, load_run
 
@@ -50,11 +57,6 @@ def _machine_bar() -> html.Div:
             ),
             html.Div(
                 [
-                    dbc.Button(
-                        f"⚑ Report bad parts · last {FEEDBACK_STROKES}",
-                        id="status-report",
-                        className="hmi-button hmi-report",
-                    ),
                     html.Span(id="status-live-dot", className="hmi-dot"),
                     dbc.Button("Run", id="status-play", className="hmi-button"),
                 ],
@@ -62,6 +64,91 @@ def _machine_bar() -> html.Div:
             ),
         ],
         className="hmi-bar",
+    )
+
+
+def _feedback_bar() -> html.Div:
+    """The operator's way into the board, given the weight that deserves.
+
+    Everything else on this page is the press talking. This is the one control that
+    carries information the other direction, so it is a full-width action rather than a
+    button tucked into a toolbar.
+    """
+    return html.Div(
+        [
+            dbc.Button(
+                [html.Span("⚑", className="feedback-icon"), "Report bad parts"],
+                id="status-report",
+                className="feedback-button",
+            ),
+            html.Div(
+                [
+                    html.Div(
+                        "Something wrong with the parts coming off the die?",
+                        className="feedback-line",
+                    ),
+                    html.Div(
+                        "Report it against the strokes that produced them. The monitor's "
+                        "reading of the same window is recorded alongside.",
+                        className="feedback-note",
+                    ),
+                ]
+            ),
+        ],
+        className="feedback-bar",
+    )
+
+
+def _feedback_form() -> dbc.Modal:
+    """What the operator is asked, and nothing more: when, what, and anything else."""
+    return dbc.Modal(
+        [
+            dbc.ModalHeader(dbc.ModalTitle("Report bad parts")),
+            dbc.ModalBody(
+                [
+                    html.Div(id="status-feedback-when", className="feedback-anchor"),
+                    html.Div("How far back were the parts bad?", className="form-label mt-3"),
+                    dbc.RadioItems(
+                        id="status-feedback-window",
+                        options=[
+                            {"label": f"Last {count} strokes", "value": count}
+                            for count in WINDOW_CHOICES
+                        ],
+                        value=FEEDBACK_STROKES,
+                        inline=True,
+                    ),
+                    html.Div(
+                        "Stated in strokes rather than minutes: press rate was never "
+                        "recorded with these trials, so a time would be invented.",
+                        className="section-note mt-1",
+                    ),
+                    html.Div("What was wrong with them?", className="form-label mt-3"),
+                    dbc.RadioItems(
+                        id="status-feedback-issue",
+                        options=[{"label": label, "value": key} for key, label in ISSUES],
+                        value=ISSUES[0][0],
+                    ),
+                    html.Div("Anything to add?", className="form-label mt-3"),
+                    dbc.Textarea(
+                        id="status-feedback-note",
+                        placeholder="Optional — in your own words",
+                        rows=2,
+                    ),
+                ]
+            ),
+            dbc.ModalFooter(
+                [
+                    html.Div(
+                        "Recorded against these strokes. Nothing is retrained.",
+                        className="section-note me-auto",
+                    ),
+                    dbc.Button("Cancel", id="status-feedback-cancel", color="link"),
+                    dbc.Button("Submit report", id="status-feedback-submit", color="dark"),
+                ]
+            ),
+        ],
+        id="status-feedback-modal",
+        is_open=False,
     )
 
 
@@ -141,9 +228,12 @@ def layout(**_kwargs):
             _machine_bar(),
             html.Div(id="status-board", className="hmi-board"),
             html.Div(id="status-reports-strip"),
+            _feedback_bar(),
             _controls(),
             dcc.Interval(id="status-interval", interval=STREAM_INTERVAL_MS, disabled=True),
             dcc.Store(id="status-reports", data=[]),
+            dcc.Store(id="status-feedback-anchor"),
+            _feedback_form(),
             dbc.Modal(
                 [
                     dbc.ModalHeader(dbc.ModalTitle(id="status-modal-title")),
@@ -174,18 +264,39 @@ def _board(stroke, tolerance):
 
 
 @callback(
-    Output("status-reports", "data"),
+    Output("status-feedback-modal", "is_open", allow_duplicate=True),
+    Output("status-feedback-anchor", "data"),
+    Output("status-feedback-when", "children"),
+    Output("status-feedback-note", "value"),
     Input("status-report", "n_clicks"),
-    State("status-reports", "data"),
     State("status-stroke", "value"),
-    State("status-tolerance", "value"),
     prevent_initial_call=True,
 )
-def _record_report(_clicks, stored, stroke, tolerance):
+def _open_feedback(_clicks, stroke):
+    """Open the form and pin it to the stroke on screen now, not when it is submitted."""
+    when = f"Reporting from stroke {stroke + 1}, the last stroke the board has shown."
+    return True, stroke, when, ""
+
+
+@callback(
+    Output("status-reports", "data"),
+    Output("status-feedback-modal", "is_open"),
+    Input("status-feedback-submit", "n_clicks"),
+    Input("status-feedback-cancel", "n_clicks"),
+    State("status-reports", "data"),
+    State("status-feedback-anchor", "data"),
+    State("status-feedback-window", "value"),
+    State("status-feedback-issue", "value"),
+    State("status-feedback-note", "value"),
+    prevent_initial_call=True,
+)
+def _record_report(_submit, _cancel, stored, anchor, window, issue, note):
     """Take the operator's word for it and record what the monitor said at the time."""
+    if ctx.triggered_id == "status-feedback-cancel" or anchor is None:
+        return no_update, False
     reports = from_store(stored)
-    reports.append(report(load_run(), stroke, tolerance))
-    return to_store(reports)
+    reports.append(report(load_run(), anchor, window, issue, note or ""))
+    return to_store(reports), False
 
 
 @callback(
@@ -202,7 +313,10 @@ def _reports_strip(stored):
         [
             html.Span("⚑", className="strip-icon"),
             html.Span(f"{len(reports)} operator report(s)", className="strip-count"),
-            html.Span(f"latest: bad parts at {latest.label}", className="strip-detail"),
+            html.Span(
+                f"latest: {latest.issue_label.lower()} at {latest.label}",
+                className="strip-detail",
+            ),
             html.Span(latest.disagreement(), className="strip-verdict"),
         ],
         className="report-strip",

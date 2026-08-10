@@ -51,16 +51,25 @@ consumed can be computed — the board does not invent one. The continuous frict
 misalignment is likewise **one axis only**: the campaign varied overfeed along the feed direction,
 so there is no second axis to predict.
 
-Each card opens into the same per-stroke views the research pages use — the time-resolved
-attribution over the force curve for wear, the fitted plateau line for misalignment — so an engineer
-who has seen those pages recognises the board immediately.
+Each card opens into the same per-stroke views the research pages use. Tool wear shows the raw force
+curve against the mean curve of each wear level, then the same stroke coloured by where the model
+found its evidence; strip misalignment shows the full stroke and the line fitted across its plateau.
+An engineer who has seen those pages recognises the board immediately.
 
 ### Operator feedback
 
-*Report bad parts* marks the last 60 strokes and records what the monitor was saying over the same
-window. That is the pair a label-collection loop needs: an operator's verdict on a stretch of
-production, against the models' reading of it. The interesting report is the one where every signal
-read normal and the parts did not.
+*Report bad parts* is the one control that carries information back into the board, so it sits below
+the cards as a full-width action rather than a button in a toolbar. It opens a form asking the two
+things only the operator knows: **how far back** the parts were bad — 30, 60 or 120 strokes — and
+**what was wrong** with them, from the defects this process actually produces, plus a free-text note.
+Which defect matters, because it decides whether a force signal could ever have carried it: a burr
+belongs to the cutting station, a thin wall to ironing, an off-centre cup to the strip feed.
+
+The window is anchored to the stroke on screen when the form opened, not when it was submitted — the
+operator is reporting on what they had just seen, and a form left open while the press runs on would
+otherwise slide off the parts they meant. Submitting records what the monitor was saying over that
+same window. That pair is what a label-collection loop needs. The interesting report is the one where
+every signal read normal and the parts did not.
 
 It **does not retrain anything** — the models are fixed, and one report is not a training set. What
 it demonstrates is the capture step, which is precisely what is missing from every dataset in this

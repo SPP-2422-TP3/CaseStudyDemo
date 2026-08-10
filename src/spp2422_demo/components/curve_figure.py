@@ -44,8 +44,15 @@ def level_reference(data: StationData, level: int) -> tuple[np.ndarray, np.ndarr
     return mean, mean - std, mean + std
 
 
-def stroke_figure(data: StationData, index: int, show_references: bool = True) -> go.Figure:
-    """One measured stroke against the mean curve of each wear level."""
+def stroke_figure(
+    data: StationData, index: int, show_references: bool = True, label: str | None = None
+) -> go.Figure:
+    """One measured stroke against the mean curve of each wear level.
+
+    `label` overrides the trace name. The station pages walk a production run and want its
+    own stroke number; the status board walks an assembled run and would otherwise print a
+    number that matches nothing the operator can see on screen.
+    """
     figure = go.Figure()
 
     if show_references:
@@ -77,7 +84,7 @@ def stroke_figure(data: StationData, index: int, show_references: bool = True) -
         go.Scatter(
             x=EVENT_TIME,
             y=data.curves[index],
-            name=f"Stroke {int(data.stroke_index[index])}",
+            name=label or f"Stroke {int(data.stroke_index[index])}",
             line={"color": INK, "width": 2.2},
             hovertemplate="x = %{x:.3f}<br>force = %{y:.3f}<extra></extra>",
         )
