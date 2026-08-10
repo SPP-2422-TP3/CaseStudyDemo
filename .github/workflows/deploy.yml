@@ -1,0 +1,72 @@
+name: Deploy to Hugging Face Spaces
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# One deploy at a time, and let a newer push cancel an older one rather than queue behind it.
+concurrency:
+  group: space
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check the Space is configured
+        id: config
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_SPACE: ${{ vars.HF_SPACE }}
+        run: |
+          if [ -z "$HF_TOKEN" ] || [ -z "$HF_SPACE" ]; then
+            echo "No Space configured -- set the HF_TOKEN secret and the HF_SPACE variable."
+            echo "See 'Putting it on the web' in the README. Skipping, not failing."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Spaces read their configuration from YAML at the top of README.md. It is generated
+      # here rather than committed, so the repository's own README stays a README.
+      - name: Write the Space's README header
+        if: steps.config.outputs.ready == 'true'
+        run: |
+          {
+            echo '---'
+            echo 'title: SPP 2422 TP3 - Tool Wear from Forming Forces'
+            echo 'emoji: 🛠️'
+            echo 'colorFrom: blue'
+            echo 'colorTo: gray'
+            echo 'sdk: docker'
+            echo 'app_port: 8050'
+            echo 'pinned: false'
+            echo 'license: mit'
+            echo '---'
+            echo
+            cat README.md
+          } > README.space.md
+          mv README.space.md README.md
+
+      # Pushed as a single fresh commit rather than the repository's history: the Space is
+      # a deploy target, not a mirror, and Hugging Face rejects any file over 10 MB that is
+      # not in LFS -- which the tool animation and the curve extract both are.
+      - name: Push to the Space
+        if: steps.config.outputs.ready == 'true'
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          HF_SPACE: ${{ vars.HF_SPACE }}
+        run: |
+          rm -rf .git .github
+          git init -q -b main
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git lfs install --local
+          git lfs track "*.mp4" "*.npz" "*.pkl"
+          git add -A
+          git commit -q -m "Deploy ${GITHUB_SHA::7} from ${GITHUB_REPOSITORY}"
+          git push -q --force "https://user:${HF_TOKEN}@huggingface.co/spaces/${HF_SPACE}" main
+          echo "Deployed to https://huggingface.co/spaces/${HF_SPACE}"

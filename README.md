@@ -1,5 +1,7 @@
 # SPP 2422 · Teilprojekt 3 — tool wear from forming force signals
 
+[![CI](https://github.com/SPP-2422-TP3/CaseStudyDemo/actions/workflows/ci.yml/badge.svg)](https://github.com/SPP-2422-TP3/CaseStudyDemo/actions/workflows/ci.yml)
+
 A dashboard demo for an industrial colloquium, built on
 [SPP 2422 Teilprojekt 3](https://www.ifu.uni-stuttgart.de/spp-2422/teilprojekte/teilprojekt-3/) —
 *Optimierung des Wirkflächendesigns schnelllaufender Folgeverbundwerkzeuge unter Nutzung
@@ -87,22 +89,55 @@ Then open <http://localhost:8050>. In VS Code, *Reopen in Container* does the sa
 `.devcontainer/`, and `uv run spp2422-demo` starts it. With [uv](https://docs.astral.sh/uv/)
 already installed, that one command is the whole story.
 
+`compose.yaml` mounts the source and reloads with it, which is what you want while working on it.
+`Dockerfile` builds the self-contained image that gets deployed, serving through gunicorn rather
+than Flask's development server — `docker build -t spp2422-demo . && docker run -p 8050:8050
+spp2422-demo`.
+
 Trained models and the centre-state calibration are cached in `data/models/` and committed, so
 even the first start is instant. Force a rebuild with `uv run spp2422-demo prepare --force`.
 
-## Show it on another machine
+## Putting it on the web
+
+The dashboard needs a Python server — every card, modal and stream tick is a server-side callback —
+so GitHub Pages cannot host it. `.github/workflows/deploy.yml` publishes it to a
+[Hugging Face Space](https://huggingface.co/docs/hub/spaces) instead: free, no card, and a permanent
+public URL. **Three manual steps, once:**
+
+1. Create a free account at <https://huggingface.co/join>, then a Space at
+   <https://huggingface.co/new-space> — any name, **SDK: Docker**, visibility Public.
+2. Make a token at <https://huggingface.co/settings/tokens> with **Write** permission. In this
+   repository, *Settings → Secrets and variables → Actions*, add it as a secret named `HF_TOKEN`.
+3. On the *Variables* tab beside it, add `HF_SPACE` with the value `<your-username>/<space-name>`.
+
+Push to `main` and the workflow deploys. The Space builds the `Dockerfile` and comes up at
+`https://huggingface.co/spaces/<your-username>/<space-name>`. Until both settings exist the workflow
+skips rather than fails, so the repository is not red while you are getting to it.
+
+What to expect from the free tier: the first build takes several minutes (it installs torch), and a
+Space with no visitors for a couple of days sleeps and takes about a minute to wake on the next
+visit. Anyone with the link can open it — there is nothing private in the demo, but it is public.
+
+### Just for a talk
 
 A [Cloudflare quick tunnel](https://developers.cloudflare.com/cloudflare-one/connections/connect-networks/do-more-with-tunnels/trycloudflare/)
-puts the running server on a public URL without an account or any DNS setup:
+puts a *locally* running server on a public URL with no account and no DNS:
 
 ```bash
 curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o cloudflared && chmod +x cloudflared
 ./cloudflared tunnel --url http://localhost:8050
 ```
 
-It prints a `https://<random-words>.trycloudflare.com` address; open that from anywhere. The
-link is **unauthenticated** — anyone who has it reaches the dashboard — and it disappears when
-the process stops, so it suits a talk, not a deployment.
+It prints a `https://<random-words>.trycloudflare.com` address. The link is **unauthenticated** and
+disappears when the process stops, so it suits a demo from your own laptop — no cold start, and
+nothing to set up in advance.
+
+## Continuous integration
+
+`.github/workflows/ci.yml` runs ruff and the test suite on every push and pull request, then two
+checks that tests alone would miss: that the committed `data/models/*.pkl` still load without being
+silently retrained — a stale cache passes every test while leaving the repository wrong — and that
+the dashboard actually answers on `:8050`.
 
 ## The data
 

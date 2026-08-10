@@ -1,0 +1,13 @@
+.git
+.github
+.venv
+.devcontainer
+.pytest_cache
+.ruff_cache
+__pycache__
+**/__pycache__
+_excentricity_data
+context-material
+tests
+scripts
+compose.yaml

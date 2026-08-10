@@ -21,6 +21,11 @@ dependencies = [
     "torch>=2.6",
 ]
 
+# Only needed where the app is served to more than one person: `spp2422-demo serve`
+# runs Flask's development server, which is fine on a laptop and not fine on a host.
+[project.optional-dependencies]
+deploy = ["gunicorn>=23"]
+
 [project.scripts]
 spp2422-demo = "spp2422_demo.cli:main"
 

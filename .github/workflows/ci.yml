@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: uv.lock
+
+      - name: Install the project
+        run: uv sync --frozen
+
+      - name: Lint
+        run: uv run ruff check .
+
+      - name: Test
+        run: uv run pytest -q
+
+      # data/models/*.pkl is committed so the demo starts instantly, and it is pickled
+      # against the library versions in uv.lock. If a change makes the cache stale,
+      # loading it silently retrains and rewrites the files -- which passes every test
+      # while leaving a repo whose committed cache is wrong. Catch that here instead.
+      - name: The committed model cache must still be valid
+        run: |
+          uv run python - <<'PY'
+          import hashlib
+
+          from spp2422_demo.artifacts import CACHE_DIR, load_artifacts
+          from spp2422_demo.data import STATIONS
+
+          def digest():
+              return {p.name: hashlib.sha256(p.read_bytes()).hexdigest()
+                      for p in sorted(CACHE_DIR.glob("*.pkl"))}
+
+          before = digest()
+          assert before, f"no committed cache in {CACHE_DIR}"
+          for key in STATIONS:
+              load_artifacts(key)
+          assert before == digest(), (
+              "loading the committed cache rebuilt it. Run `uv run spp2422-demo prepare "
+              "--force` and commit the new data/models/*.pkl."
+          )
+          print(f"cache valid: {', '.join(before)}")
+          PY
+
+      - name: The dashboard must come up
+        run: |
+          uv run spp2422-demo serve --port 8050 &
+          for _ in $(seq 30); do
+            curl -fsS -o /dev/null http://127.0.0.1:8050/ && exit 0
+            sleep 2
+          done
+          echo "the server never answered on :8050"
+          exit 1
