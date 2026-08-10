@@ -153,9 +153,7 @@ def _body(station_key: str):
             html.Div(
                 panel(
                     "Classification quality against the real-data budget",
-                    dcc.Graph(
-                        figure=quality_figure(calibration), config={"displayModeBar": False}
-                    ),
+                    dcc.Graph(figure=quality_figure(calibration), config={"displayModeBar": False}),
                     note=(
                         "The same fitted values, cut at the sweep's tercile edges and scored as "
                         "a three-way level call instead of a continuous position. Dotted line is "

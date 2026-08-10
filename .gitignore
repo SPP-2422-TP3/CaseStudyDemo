@@ -220,3 +220,7 @@ __marimo__/
 # Reference material: a clone of the research repo this demo draws its data from.
 # Kept locally for provenance, never part of the demo.
 context-material/
+
+# Raw NUMISHEET capture for the excentricity page: ~926 MB of per-channel arrays.
+# Only the one channel the models read is committed, as data/excentricity.npz.
+_excentricity_data/

@@ -73,8 +73,9 @@ GROUPS: list[tuple[str, str, list[Paper]]] = [
                 "J. Moske, M. Schumann, A. Wüst, K. Kersting, P. Groche",
                 "Journal of Physics: Conference Series 3104, 012058 — NUMISHEET 2025",
                 "10.1088/1742-6596/3104/1/012058",
-                "The groundwork for the product quality page: finite element simulation links "
-                "how the strip is positioned to the defects that follow from it.",
+                "The method behind the Excentricity page: finite element simulation links how "
+                "the strip is positioned to the defects that follow from it, and the plateau "
+                "slope of the punch force is what carries that position back out.",
             ),
         ],
     ),

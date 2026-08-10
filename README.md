@@ -12,7 +12,9 @@ about the condition of the tools:
 - **Deep Drawing** and **Ironing** — pick a production run and a stroke, pick one of four
   models, and see the predicted wear state. A predicted critical state raises an alert, and the
   prediction can be opened up to show which part of the stroke the model actually read.
-- **Product Quality** — placeholder for the strip-misalignment work, contributed separately.
+- **Excentricity** — step through measured strokes of the deep-drawing station and read how
+  far off-centre the strip was fed, from the slope of the force plateau alone. Crossing the
+  alarm limit stops the stream and raises a warning.
 - **Help** — how to read the dashboard, and the papers behind it.
 
 ## Run it
@@ -82,6 +84,28 @@ uv run python scripts/extract_data.py
 
 `context-material/` is git-ignored; nothing in it is needed to run the demo.
 
+### Strip misalignment — `data/excentricity.npz`
+
+A separate measurement campaign, behind the **Excentricity** page. `data/excentricity.npz`
+(1.2 MB, committed) holds 343 measured strokes: seven series of 49, one per tool infeed from
+60.00 to 60.30 mm in 0.05 mm steps, resampled to 912 samples and divided by the median of the
+per-stroke maxima. `force_scale` carries the kN the normalization divided out, so the page can
+plot physical force. Only the axial punch force of the deep-drawing module
+(`K2_Ch2_Mod2AI4`) is used; the other eight force channels and four accelerometers are
+recorded but unmodelled. No simulated curves appear on this page.
+
+Labels are **hundredths of a millimetre of overfeed** past the 60 mm reference, which is what
+the source folder names encode. Three progressive stages precede deep drawing, so the offset
+accumulates roughly threefold: 0.30 mm of overfeed puts the cup ~0.9 mm off-centre. The page
+converts for display; nothing shows a raw label.
+
+Rebuilding it needs the raw capture in `_excentricity_data/real_numisheet/` (~926 MB,
+git-ignored — ask for it, it is not public):
+
+```bash
+uv run python scripts/extract_excentricity_data.py
+```
+
 ## Models and explanations
 
 Four classifiers, all mapping one curve to a probability over the three levels:
@@ -116,6 +140,26 @@ the deployed model uses, and every wear level appears in training — so it meas
 tool that has already been characterised, not recognising a state the model has never met.
 
 Those are not the same question, and the second one is the one production actually asks.
+
+### Strip misalignment
+
+A different model on a different dataset: a random forest (20 trees, depth 4) reading two numbers
+per stroke — the slope and height of a line fitted across the force plateau. Held out over ten
+random 80/20 splits it reaches **35.3 ± 3.2 µm** mean absolute error in infeed terms, reproducing
+Table 1 of Moske et al. (0.0352 ± 0.0021 mm).
+
+That average has a tail, and the page says so. Out of fold, a single stroke lands on the exact
+infeed level **44%** of the time and within one level 91% — the median error, 28 µm, is larger
+than the 25 µm half-spacing that rounding to the nearest level would need. Averaging ten
+consecutive strokes cuts the error to ~21 µm, which is why the alarm watches the running mean by
+default: on one pass through all seven series it fires **once**, at the correct series, where
+watching single strokes fires 19 times and first stops on a series that is inside tolerance.
+
+The bigger caveat is structural. Each infeed level is one uninterrupted run of 49 strokes, so a
+random split puts strokes sharing a tool temperature, a lubrication state and one setup on both
+sides of it. Holding a whole run out is impossible — that removes its label from training
+entirely. The number therefore measures recognising a stroke from a run already seen. Repeated
+runs per infeed level are what an honest generalisation estimate would need.
 
 ## Locating the state nobody can label
 
