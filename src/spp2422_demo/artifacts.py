@@ -31,7 +31,7 @@ from .wear_position import WearPosition, centre_placement, fit_wear_position
 
 CACHE_DIR = Path(__file__).resolve().parents[2] / "data" / "models"
 # Bump when anything that changes a trained model changes, so stale caches are ignored.
-CACHE_VERSION = 6
+CACHE_VERSION = 7
 
 
 @dataclass

@@ -666,3 +666,9 @@ body {
 .wear-bar + .wear-bar { margin-top: 1.1rem; }
 
 .alignment-head .stat-value { font-size: 2.6rem; line-height: 1; }
+
+.card-model {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-style: italic;
+}

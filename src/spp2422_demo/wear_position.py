@@ -58,7 +58,6 @@ class WearPosition:
     station_key: str
     window: int  # strokes from the start of each run the anchors were taken from
     budget: int  # real strokes per endpoint spent on the discrepancy fit
-    features: list[str]
     position: np.ndarray  # (n,) 0 = pristine anchor, 1 = worn anchor; not clipped
     fitted_rows: np.ndarray  # rows the discrepancy GP saw; never displayed
 
@@ -107,7 +106,6 @@ def fit_wear_position(data: StationData, calibration: Calibration) -> WearPositi
         station_key=data.station.key,
         window=window,
         budget=budget,
-        features=selected.names,
         position=position,
         fitted_rows=np.sort(fitted_rows),
     )

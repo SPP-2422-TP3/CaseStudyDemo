@@ -70,7 +70,6 @@ class Scenario:
 
     key: str
     name: str
-    summary: str
     wear_stages: tuple[tuple[int, int], ...]
     infeed: str  # "stable" or "drifting"
 
@@ -81,20 +80,12 @@ SCENARIOS = {
         Scenario(
             key="stable",
             name="Normal production",
-            summary=(
-                "Fresh tools and a centred strip for the whole run. Everything on screen is "
-                "stroke-to-stroke scatter -- the baseline the other scenario departs from."
-            ),
             wear_stages=STABLE_WEAR,
             infeed="stable",
         ),
         Scenario(
             key="degrading",
             name="Tool wear and drifting strip",
-            summary=(
-                "The tools walk from fresh through the intermediate state to critical while "
-                "the strip feed drifts off centre -- two independent faults arriving at once."
-            ),
             wear_stages=DEGRADING_WEAR,
             infeed="drifting",
         ),
@@ -108,14 +99,12 @@ class Run:
 
     scenario: Scenario
     wear_level: np.ndarray  # (N,) the recorded run each stroke was drawn from, 1..3
-    infeed_level: np.ndarray  # (N,) its series' overfeed, hundredths of a mm
     position: dict[str, np.ndarray]  # station -> (N,) 0 = pristine anchor, 1 = worn
     proba: dict[str, np.ndarray]  # station -> (N, 3) classifier probabilities
-    model_name: dict[str, str]
+    model_name: dict[str, str]  # station -> the classifier reading it
     rows: np.ndarray  # (N,) row into the measured extract; the same stroke at both stations
     alignment_mm: np.ndarray  # (N,) predicted offset at the cup, out of fold
     alignment_true_mm: np.ndarray  # (N,) the offset its series was actually run at
-    alignment_rows: np.ndarray  # (N,) row into the misalignment dataset
 
     def level(self, station_key: str, stroke: int) -> int:
         """The classifier's call for one stroke: wear level 1..3."""
@@ -228,12 +217,10 @@ def load_run(scenario_key: str) -> Run:
     return Run(
         scenario=scenario,
         wear_level=wear_level,
-        infeed_level=infeed_level,
         position={key: load_artifacts(key).wear.display(rows) for key in STATIONS},
         proba={key: classified[key][0] for key in STATIONS},
         model_name={key: classified[key][1] for key in STATIONS},
         rows=rows,
         alignment_mm=np.array([excentricity_mm(v) for v in alignment.predicted[alignment_rows]]),
         alignment_true_mm=np.array([excentricity_mm(v) for v in infeed_level]),
-        alignment_rows=alignment_rows,
     )

@@ -222,7 +222,13 @@ def detail(card: str, run: Run, stroke: int, tolerance_mm: float) -> tuple[str, 
                     [
                         dbc.Col(
                             [
-                                html.Div(STATIONS[key].name, className="card-title"),
+                                html.Div(
+                                    [
+                                        html.Span(STATIONS[key].name, className="card-title"),
+                                        html.Span(run.model_name[key], className="card-model"),
+                                    ],
+                                    className="card-head",
+                                ),
                                 confidence_bars(run, key, stroke),
                             ],
                             md=6,
