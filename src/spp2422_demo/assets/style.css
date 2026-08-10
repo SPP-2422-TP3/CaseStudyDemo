@@ -672,3 +672,26 @@ body {
   font-size: 0.76rem;
   font-style: italic;
 }
+
+.topbar-hidden { display: none; }
+
+.hmi-links {
+  align-items: baseline;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.9rem;
+  margin-top: 1.4rem;
+  padding-top: 0.9rem;
+}
+
+.hmi-links .form-label { margin: 0; }
+
+.hmi-link {
+  color: var(--accent);
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.hmi-link:hover { text-decoration: underline; }

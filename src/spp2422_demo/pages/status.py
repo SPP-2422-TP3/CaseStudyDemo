@@ -59,62 +59,87 @@ def _machine_bar() -> html.Div:
     )
 
 
+def _details_links() -> html.Div:
+    """The way off the board.
+
+    The status page renders without the site's top bar, so this is the only route to the
+    pages that argue about the models. It is built from the page registry rather than
+    listed by hand, so a new page cannot go missing from it.
+    """
+    pages = sorted(dash.page_registry.values(), key=lambda page: page.get("order", 99))
+    return html.Div(
+        [
+            html.Span("Model detail", className="form-label"),
+            *(
+                dcc.Link(page["name"], href=page["relative_path"], className="hmi-link")
+                for page in pages
+                if not page.get("top_level")
+            ),
+        ],
+        className="hmi-links",
+    )
+
+
 def _controls() -> html.Div:
     return html.Div(
-        dbc.Row(
-            [
-                dbc.Col(
-                    [
-                        html.Div("Press run", className="form-label"),
-                        dcc.Dropdown(
-                            id="status-scenario",
-                            options=[
-                                {"label": scenario.name, "value": key}
-                                for key, scenario in SCENARIOS.items()
-                            ],
-                            value=next(iter(SCENARIOS)),
-                            clearable=False,
-                        ),
-                    ],
-                    lg=4,
-                ),
-                dbc.Col(
-                    [
-                        html.Div("Jump to stroke", className="form-label"),
-                        dcc.Slider(
-                            id="status-stroke",
-                            min=FIRST_STROKE,
-                            max=N_STROKES - 1,
-                            step=1,
-                            value=FIRST_STROKE,
-                            marks={
-                                value: str(value + 1)
-                                for value in (FIRST_STROKE, 99, 199, N_STROKES - 1)
-                            },
-                            tooltip={"placement": "bottom", "always_visible": False},
-                        ),
-                    ],
-                    lg=5,
-                ),
-                dbc.Col(
-                    [
-                        html.Div("Alignment tolerance (mm)", className="form-label"),
-                        dcc.Slider(
-                            id="status-tolerance",
-                            min=0.30,
-                            max=0.90,
-                            step=0.15,
-                            value=DEFAULT_TOLERANCE_MM,
-                            marks={
-                                value: f"{value:.2f}" for value in (0.30, 0.45, 0.60, 0.75, 0.90)
-                            },
-                        ),
-                    ],
-                    lg=3,
-                ),
-            ],
-            className="g-4 align-items-end",
-        ),
+        [
+            dbc.Row(
+                [
+                    dbc.Col(
+                        [
+                            html.Div("Press run", className="form-label"),
+                            dcc.Dropdown(
+                                id="status-scenario",
+                                options=[
+                                    {"label": scenario.name, "value": key}
+                                    for key, scenario in SCENARIOS.items()
+                                ],
+                                value=next(iter(SCENARIOS)),
+                                clearable=False,
+                            ),
+                        ],
+                        lg=4,
+                    ),
+                    dbc.Col(
+                        [
+                            html.Div("Jump to stroke", className="form-label"),
+                            dcc.Slider(
+                                id="status-stroke",
+                                min=FIRST_STROKE,
+                                max=N_STROKES - 1,
+                                step=1,
+                                value=FIRST_STROKE,
+                                marks={
+                                    value: str(value + 1)
+                                    for value in (FIRST_STROKE, 99, 199, N_STROKES - 1)
+                                },
+                                tooltip={"placement": "bottom", "always_visible": False},
+                            ),
+                        ],
+                        lg=5,
+                    ),
+                    dbc.Col(
+                        [
+                            html.Div("Alignment tolerance (mm)", className="form-label"),
+                            dcc.Slider(
+                                id="status-tolerance",
+                                min=0.30,
+                                max=0.90,
+                                step=0.15,
+                                value=DEFAULT_TOLERANCE_MM,
+                                marks={
+                                    value: f"{value:.2f}"
+                                    for value in (0.30, 0.45, 0.60, 0.75, 0.90)
+                                },
+                            ),
+                        ],
+                        lg=3,
+                    ),
+                ],
+                className="g-4 align-items-end",
+            ),
+            _details_links(),
+        ],
         className="hmi-controls",
     )
 

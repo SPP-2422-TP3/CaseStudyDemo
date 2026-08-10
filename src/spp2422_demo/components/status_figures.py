@@ -17,9 +17,17 @@ import plotly.graph_objects as go
 from dash import html
 
 from ..data import STATIONS
-from ..health import COLOR, CRITICAL, GOOD, WATCH, majority_level
+from ..health import (
+    COLOR,
+    CRITICAL,
+    GOOD,
+    WATCH,
+    WATCH_FRACTION,
+    alignment_state,
+    majority_level,
+)
 from ..scenario import ALIGNMENT_WINDOW, WEAR_WINDOW, Run
-from ..theme import INK, LEVEL_COLORS, MUTED
+from ..theme import GRID, INK, LEVEL_COLORS, MUTED
 
 STROKE_TITLE = "Stroke"
 LOG_ROWS = 12  # recent strokes listed in a detail window
@@ -30,7 +38,7 @@ def _rgba(hex_color: str, alpha: float) -> str:
     return f"rgba({r},{g},{b},{alpha})"
 
 
-def _trailing(values: np.ndarray, window: int) -> np.ndarray:
+def trailing(values: np.ndarray, window: int) -> np.ndarray:
     """Trailing mean at every position, short at the start rather than absent."""
     sums = np.cumsum(np.insert(values, 0, 0.0))
     starts = np.maximum(np.arange(len(values)) - window + 1, 0)
@@ -78,7 +86,7 @@ def wear_trend_figure(run: Run, strokes: np.ndarray) -> go.Figure:
         figure.add_trace(
             go.Scatter(
                 x=strokes,
-                y=_trailing(run.position[key], WEAR_WINDOW)[strokes],
+                y=trailing(run.position[key], WEAR_WINDOW)[strokes],
                 mode="lines",
                 line={"color": colour, "width": 2.5, "dash": ["solid", "dot"][index]},
                 name=STATIONS[key].name,
@@ -121,7 +129,7 @@ def alignment_trend_figure(run: Run, strokes: np.ndarray, tolerance_mm: float) -
     figure.add_trace(
         go.Scatter(
             x=strokes,
-            y=_trailing(run.alignment_mm, ALIGNMENT_WINDOW)[strokes],
+            y=trailing(run.alignment_mm, ALIGNMENT_WINDOW)[strokes],
             mode="lines",
             line={"color": INK, "width": 2.5},
             name=f"Predicted, last {ALIGNMENT_WINDOW}",
@@ -133,25 +141,67 @@ def alignment_trend_figure(run: Run, strokes: np.ndarray, tolerance_mm: float) -
     return _frame(figure, strokes, "Off-centre at the cup (mm)")
 
 
-def sparkline(values: np.ndarray, colour: str, ceiling: float, limit: float) -> go.Figure:
-    """A bare trend for a card face -- no axes, no labels, no hover, one reference line."""
-    figure = go.Figure(
+def alignment_dots(
+    values: np.ndarray, ceiling: float, limit: float, smoothed: np.ndarray
+) -> go.Figure:
+    """One dot per stroke on a ruled grid -- a control chart, read at a glance.
+
+    A dot per stroke rather than a line because each stroke really is an independent
+    reading: the scatter is the measurement's own, and a line implies a continuity between
+    consecutive strokes that the data does not have. Each dot carries its own state
+    colour, so a handful of excursions is visibly different from a settled drift upward,
+    which one colour for the whole trace would hide.
+
+    The trailing mean the alarm actually watches is drawn over the top, so the card shows
+    both the reading and the thing being judged.
+    """
+    figure = go.Figure()
+    figure.add_hline(y=limit, line={"color": COLOR[CRITICAL], "width": 1, "dash": "dash"})
+    figure.add_hline(
+        y=WATCH_FRACTION * limit, line={"color": COLOR[WATCH], "width": 1, "dash": "dot"}
+    )
+    figure.add_trace(
         go.Scatter(
             x=np.arange(len(values)),
             y=values,
-            mode="lines",
-            line={"color": colour, "width": 2},
-            fill="tozeroy",
-            fillcolor=_rgba(colour, 0.12),
+            mode="markers",
+            marker={
+                "size": 5,
+                "color": [COLOR[alignment_state(value, limit)] for value in values],
+            },
             hoverinfo="skip",
         )
     )
-    figure.add_hline(y=limit, line={"color": MUTED, "width": 1, "dash": "dot"})
+    figure.add_trace(
+        go.Scatter(
+            x=np.arange(len(smoothed)),
+            y=smoothed,
+            mode="lines",
+            line={"color": INK, "width": 1.5},
+            hoverinfo="skip",
+        )
+    )
     figure.update_layout(
-        height=52,
-        margin={"l": 0, "r": 0, "t": 4, "b": 0},
-        xaxis={"visible": False, "fixedrange": True},
-        yaxis={"visible": False, "fixedrange": True, "range": (0.0, ceiling)},
+        height=104,
+        margin={"l": 34, "r": 6, "t": 6, "b": 6},
+        xaxis={
+            "showgrid": True,
+            "gridcolor": GRID,
+            "showticklabels": False,
+            "ticks": "",
+            "zeroline": False,
+            "fixedrange": True,
+        },
+        yaxis={
+            "range": (0.0, ceiling),
+            "showgrid": True,
+            "gridcolor": GRID,
+            "tickfont": {"size": 9, "color": MUTED},
+            "ticks": "",
+            "zeroline": False,
+            "fixedrange": True,
+            "nticks": 4,
+        },
         showlegend=False,
     )
     return figure

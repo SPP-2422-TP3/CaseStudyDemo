@@ -90,6 +90,13 @@ def majority_level(run: Run, station_key: str, stroke: int) -> int:
     return int(np.bincount(calls, minlength=4)[1:].argmax()) + 1
 
 
+def alignment_state(value_mm: float, tolerance_mm: float) -> str:
+    """State of one misalignment reading, whether it is a single stroke or a mean."""
+    if value_mm >= tolerance_mm:
+        return CRITICAL
+    return WATCH if value_mm >= WATCH_FRACTION * tolerance_mm else GOOD
+
+
 def alignment_signal(run: Run, stroke: int, tolerance_mm: float) -> Signal:
     """Strip alignment, read off the running mean rather than a single stroke.
 
@@ -98,12 +105,12 @@ def alignment_signal(run: Run, stroke: int, tolerance_mm: float) -> Signal:
     same choice the Excentricity page defends at length.
     """
     value = run.smoothed_alignment(stroke)
-    if value >= tolerance_mm:
-        state, detail = CRITICAL, f"past the {tolerance_mm:.2f} mm tolerance at the cup"
-    elif value >= WATCH_FRACTION * tolerance_mm:
-        state, detail = WATCH, f"approaching the {tolerance_mm:.2f} mm tolerance"
-    else:
-        state, detail = GOOD, f"inside the {tolerance_mm:.2f} mm tolerance"
+    state = alignment_state(value, tolerance_mm)
+    detail = {
+        CRITICAL: f"past the {tolerance_mm:.2f} mm tolerance at the cup",
+        WATCH: f"approaching the {tolerance_mm:.2f} mm tolerance",
+        GOOD: f"inside the {tolerance_mm:.2f} mm tolerance",
+    }[state]
     return Signal(
         key="alignment",
         name="Strip alignment",

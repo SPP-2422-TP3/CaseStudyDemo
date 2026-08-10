@@ -25,10 +25,11 @@ from ..health import (
 from ..scenario import ALIGNMENT_WINDOW, WEAR_WINDOW, Run
 from .status_figures import (
     LOG_ROWS,
+    alignment_dots,
     alignment_trend_figure,
     confidence_bars,
-    sparkline,
     stroke_log,
+    trailing,
     wear_trend_figure,
 )
 
@@ -170,16 +171,17 @@ def alignment_card(run: Run, stroke: int, signal: Signal, tolerance_mm: float) -
         ),
         html.Div(signal.detail, className="alignment-detail"),
         dcc.Graph(
-            figure=sparkline(
+            figure=alignment_dots(
                 run.alignment_mm[strokes],
-                COLOR[signal.state],
                 ceiling=max(tolerance_mm * 1.2, float(run.alignment_mm[strokes].max()) * 1.1),
                 limit=tolerance_mm,
+                smoothed=trailing(run.alignment_mm, ALIGNMENT_WINDOW)[strokes],
             ),
             config={"displayModeBar": False, "staticPlot": True},
         ),
         html.Div(
-            f"Feed direction only · last {len(strokes)} strokes, dotted line is the tolerance",
+            f"One dot per stroke, feed direction only · last {len(strokes)} strokes, "
+            "dashed line is the tolerance",
             className="card-foot",
         ),
     )

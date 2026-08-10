@@ -6,7 +6,7 @@ from pathlib import Path
 
 import dash
 import dash_bootstrap_components as dbc
-from dash import html
+from dash import Input, Output, callback, dcc, html
 
 from .theme import register_template
 
@@ -23,6 +23,8 @@ TITLE = "SPP 2422 · TP3 — Tool Wear from Forming Forces"
 # The status board is the page the dashboard opens on; everything that argues about how
 # the models work sits one menu behind it. A page opts in by setting `top_level=True`.
 DETAILS = "Details"
+# The one page that renders without any site chrome around it.
+STATUS_PATH = "/"
 
 
 def _nav() -> list:
@@ -70,6 +72,7 @@ def _topbar() -> html.Div:
             ),
             fluid="xl",
         ),
+        id="topbar",
         className="topbar",
     )
 
@@ -94,12 +97,30 @@ def _build() -> dash.Dash:
     )
     app.layout = html.Div(
         [
+            dcc.Location(id="url"),
             _topbar(),
-            dbc.Container(dash.page_container, fluid="xl", className="py-4"),
+            dbc.Container(dash.page_container, id="page", fluid="xl", className="py-4"),
         ]
     )
     return app
 
 
 app = _build()
+
+
+@callback(
+    Output("topbar", "className"),
+    Output("page", "className"),
+    Input("url", "pathname"),
+)
+def _chrome(pathname: str | None):
+    """Strip the site chrome off the status board.
+
+    The board is meant to sit on a press-side screen showing one thing, so it gets the
+    whole viewport and no navigation. Every other page keeps the top bar, and the board's
+    own control panel carries the way back to them.
+    """
+    if pathname == STATUS_PATH:
+        return "topbar topbar-hidden", "py-3"
+    return "topbar", "py-4"
 server = app.server  # for a WSGI host: `gunicorn spp2422_demo.app:server`
