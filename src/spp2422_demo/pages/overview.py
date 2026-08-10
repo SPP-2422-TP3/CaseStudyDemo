@@ -15,7 +15,7 @@ from spp2422_demo.components.curve_figure import (
 from spp2422_demo.components.layout import caveat, page_header, panel, stat_card
 from spp2422_demo.data import STATIONS
 
-dash.register_page(__name__, path="/", name="Overview", order=0)
+dash.register_page(__name__, path="/overview", name="Overview", order=1)
 
 
 MEASURED = "measured"

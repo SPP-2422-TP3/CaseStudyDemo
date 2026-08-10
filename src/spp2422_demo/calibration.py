@@ -96,14 +96,20 @@ class Calibration:
                 return placement
         return None
 
-    def best(self) -> tuple[int, int, float] | None:
+    def best(self, only_window: int | None = None) -> tuple[int, int, float] | None:
         """The (window, budget) whose placement separates most convincingly, if any does.
 
         Ranked by p-value and required to sit nearer the centre than the control, so a
         configuration that is significantly *wrong* is never reported as the headline.
+
+        `only_window` restricts the search to one window. The live dashboard needs it:
+        it streams whole production runs, and a window narrower than the run leaves most
+        strokes outside the domain the anchors were fitted on.
         """
         candidates = []
         for (window, budget), p in self.p_values.items():
+            if only_window is not None and window != only_window:
+                continue
             mix = self.at(window, budget, "mix")
             control = self.at(window, budget, "shuffled-sim")
             if mix is None or control is None or not np.isfinite(p):
@@ -129,7 +135,7 @@ def _kernel(n_features: int, *, ard: bool):
     ) + WhiteKernel(noise_level=1e-2, noise_level_bounds=(1e-6, 1e1))
 
 
-def _fit_gp(x: np.ndarray, y: np.ndarray, *, ard: bool) -> GaussianProcessRegressor:
+def fit_gp(x: np.ndarray, y: np.ndarray, *, ard: bool) -> GaussianProcessRegressor:
     gp = GaussianProcessRegressor(
         kernel=_kernel(x.shape[1], ard=ard),
         alpha=1e-6,
@@ -145,6 +151,17 @@ def _fit_gp(x: np.ndarray, y: np.ndarray, *, ard: bool) -> GaussianProcessRegres
         return gp.fit(x, y)
 
 
+def zscore_stats(x: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Per-column centre and scale, with constant columns left alone rather than blown up."""
+    spread = x.std(axis=0)
+    return x.mean(axis=0), np.where(spread > 0, spread, 1.0)
+
+
+def apply_zscore(x: np.ndarray, stats: tuple[np.ndarray, np.ndarray]) -> np.ndarray:
+    centre, scale = stats
+    return (x - centre) / scale
+
+
 def _standardize(x: np.ndarray) -> np.ndarray:
     """Z-score each column against its own domain.
 
@@ -154,8 +171,7 @@ def _standardize(x: np.ndarray) -> np.ndarray:
     their raw magnitudes are not comparable, but "how extreme within its own population"
     is.
     """
-    spread = x.std(axis=0)
-    return (x - x.mean(axis=0)) / np.where(spread > 0, spread, 1.0)
+    return apply_zscore(x, zscore_stats(x))
 
 
 def _correlate(y: np.ndarray, x: np.ndarray) -> np.ndarray:
@@ -172,8 +188,17 @@ def _correlate(y: np.ndarray, x: np.ndarray) -> np.ndarray:
     return out
 
 
-def select_features(data: StationData) -> tuple[np.ndarray, np.ndarray, list[str]]:
-    """Descriptors this stage can be calibrated on: simulated matrix, real matrix, names.
+@dataclass(frozen=True)
+class Selection:
+    """The descriptors one stage is calibrated on, and both matrices restricted to them."""
+
+    names: list[str]
+    sim: np.ndarray  # (m, k) simulated sweep
+    real: np.ndarray  # (n, k) measured strokes
+
+
+def select_features(data: StationData) -> Selection:
+    """Descriptors this stage can be calibrated on, with both matrices restricted to them.
 
     Two cuts. For ironing only, an *axis-consistency* filter: the trace there superimposes
     the ironing die's response on the upstream deep-drawing die's, so a descriptor may
@@ -203,7 +228,11 @@ def select_features(data: StationData) -> tuple[np.ndarray, np.ndarray, list[str
 
     strongest = np.argsort(-_correlate(data.sim_mu, x_sim[:, keep]))[:N_FEATURES]
     chosen = [keep[i] for i in strongest]
-    return x_sim[:, chosen], x_real[:, chosen], [names[i] for i in chosen]
+    return Selection(
+        names=[names[i] for i in chosen],
+        sim=x_sim[:, chosen],
+        real=x_real[:, chosen],
+    )
 
 
 def _level_spread(column: np.ndarray, labels: np.ndarray) -> float:
@@ -243,8 +272,9 @@ def _score(
 
 def calibrate(data: StationData) -> Calibration:
     """Run the whole window/budget sweep for one stage, over every seed and control."""
-    x_sim_raw, x_real_raw, names = select_features(data)
-    x_sim = _standardize(x_sim_raw)
+    selected = select_features(data)
+    x_real_raw = selected.real
+    x_sim = _standardize(selected.sim)
     ard = x_sim.shape[1] <= N_FEATURES
     edges = np.quantile(data.sim_mu, [1 / 3, 2 / 3])
     low_target, high_target = data.sim_mu.min(), data.sim_mu.max()
@@ -255,8 +285,8 @@ def calibrate(data: StationData) -> Calibration:
     for seed in SEEDS:
         shuffled = np.random.default_rng(seed).permutation(data.sim_mu)
         priors[seed] = (
-            _fit_gp(x_sim, data.sim_mu, ard=ard),
-            _fit_gp(x_sim, shuffled, ard=ard),
+            fit_gp(x_sim, data.sim_mu, ard=ard),
+            fit_gp(x_sim, shuffled, ard=ard),
         )
 
     raw: dict[tuple[int, int, str], list[tuple[float, float, float, float]]] = {}
@@ -290,8 +320,8 @@ def calibrate(data: StationData) -> Calibration:
                     )
                     for variant, base in (("mix", prior), ("shuffled-sim", prior_shuffled)):
                         residual = y_train - base.predict(x_train)
-                        fitted[variant] = (base, _fit_gp(x_train, residual, ard=False))
-                    fitted["real-only"] = (None, _fit_gp(x_train, y_train, ard=False))
+                        fitted[variant] = (base, fit_gp(x_train, residual, ard=False))
+                    fitted["real-only"] = (None, fit_gp(x_train, y_train, ard=False))
                 else:
                     fitted = {"mix": (prior, None), "shuffled-sim": (prior_shuffled, None)}
 
@@ -299,14 +329,14 @@ def calibrate(data: StationData) -> Calibration:
                     if variant not in fitted:
                         continue
                     base, correction = fitted[variant]
-                    mean, std = _combine(base, correction, x_holdout)
+                    mean, std = combine(base, correction, x_holdout)
                     key = (window, budget, variant)
                     raw.setdefault(key, []).append(_score(mean, std, levels_holdout, edges))
 
-    return _summarise(data.station.key, names, raw)
+    return _summarise(data.station.key, selected.names, raw)
 
 
-def _combine(
+def combine(
     prior: GaussianProcessRegressor | None,
     correction: GaussianProcessRegressor | None,
     x: np.ndarray,

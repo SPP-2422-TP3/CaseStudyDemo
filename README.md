@@ -7,15 +7,51 @@ maschineller Lernalgorithmen* (TU Darmstadt: PtU and the AI/ML Lab).
 
 One press stroke of a progressive die drives three stations — shear cutting, **deep drawing** and
 **ironing**. Each forming station carries a force sensor. The demo shows what those signals reveal
-about the condition of the tools:
+about the condition of the tools.
 
+The landing page is the **Status** board — three cards that say, at a glance, whether the press can
+keep running, how far the two tools are from worn out, and how far off-centre the strip is being
+fed. Each card opens into the strokes and classifications behind its answer. Everything that argues
+about *how* the models work sits behind the **Details** menu:
+
+- **Overview** — what the data is, and what each model is worth on it.
 - **Deep Drawing** and **Ironing** — pick a production run and a stroke, pick one of four
   models, and see the predicted wear state. A predicted critical state raises an alert, and the
   prediction can be opened up to show which part of the stroke the model actually read.
+- **Wear Threshold** — the state nobody can label, located by anchoring on the simulated sweep.
 - **Excentricity** — step through measured strokes of the deep-drawing station and read how
   far off-centre the strip was fed, from the slope of the force plateau alone. Crossing the
   alarm limit stops the stream and raises a warning.
 - **Help** — how to read the dashboard, and the papers behind it.
+
+## The status board
+
+Two press runs can be selected, and both are **assembled, not recorded**. Every stroke on screen is
+a real measured stroke shown with its own model's prediction; what is authored is the order they
+arrive in. The data holds nine production runs at *fixed* wear levels and seven feed series at
+*fixed* infeed — snapshots of states, never a transition between them — so a run that degrades has
+to be scheduled:
+
+| | wear | strip feed |
+|---|---|---|
+| **Normal production** | fresh tools throughout | the two lowest recorded infeeds |
+| **Tool wear and drifting strip** | T1/A1 → T2/A2 → T3/A3, crossfaded | ramped 60.00 → 60.30 mm |
+
+Two further compositions the board states on its own face: wear and misalignment come from separate
+measurement campaigns on separate tooling, and the first strokes of each block are skipped because a
+cold die reads as a briefly worn one.
+
+Each signal is read by the instrument that suits it. The **state** — good, watch, stop — comes from
+the classifier, as the majority call over the last 20 strokes, because that is the accurate
+instrument and the intermediate level is itself the state worth stopping for. The **percentage**
+comes from the friction axis of `wear_position.py`, which is continuous and so can show a tool
+approaching a level rather than only arriving at one. It is far noisier, and it never raises an
+alarm. The two can disagree, and the detail window says so rather than hiding it.
+
+A percentage there is a position between a pristine tool and a worn one — **not** a fraction of life
+consumed. Nothing in this data records when a tool was retired, so there is no remaining-life number
+to report, and the board does not invent one. Strip misalignment is likewise **one axis only**: the
+campaign varied overfeed along the feed direction, so there is no second axis to predict.
 
 ## Run it
 

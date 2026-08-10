@@ -27,20 +27,22 @@ from .calibration import Calibration, calibrate
 from .data import STATIONS, StationData, load_station
 from .features import feature_matrix
 from .models import WearModel, build_models
+from .wear_position import WearPosition, centre_placement, fit_wear_position
 
 CACHE_DIR = Path(__file__).resolve().parents[2] / "data" / "models"
 # Bump when anything that changes a trained model changes, so stale caches are ignored.
-CACHE_VERSION = 5
+CACHE_VERSION = 6
 
 
 @dataclass
 class TrainedStation:
-    """Models for one forming stage, plus its centre-state calibration."""
+    """Models for one forming stage, its centre-state calibration and its wear axis."""
 
     data: StationData
     models: dict[str, WearModel]
     accuracy: dict[str, float]  # held-out strokes of known runs
     calibration: Calibration
+    wear: WearPosition  # per-stroke position between the pristine and the worn anchor
 
     @property
     def default_model(self) -> str:
@@ -63,7 +65,14 @@ def _train(key: str) -> TrainedStation:
         models[model.key] = model
         accuracy[model.key] = float(np.mean(predicted == data.labels[test]))
 
-    return TrainedStation(data=data, models=models, accuracy=accuracy, calibration=calibrate(data))
+    calibration = calibrate(data)
+    return TrainedStation(
+        data=data,
+        models=models,
+        accuracy=accuracy,
+        calibration=calibration,
+        wear=fit_wear_position(data, calibration),
+    )
 
 
 @cache
@@ -78,6 +87,7 @@ def load_artifacts(key: str) -> TrainedStation:
                 models=payload["models"],
                 accuracy=payload["accuracy"],
                 calibration=payload["calibration"],
+                wear=payload["wear"],
             )
 
     trained = _train(key)
@@ -89,6 +99,7 @@ def load_artifacts(key: str) -> TrainedStation:
                 "models": trained.models,
                 "accuracy": trained.accuracy,
                 "calibration": trained.calibration,
+                "wear": trained.wear,
             }
         )
     )
@@ -111,6 +122,11 @@ def prepare(force: bool = False) -> None:
 
         calibration = trained.calibration
         print(f"    calibrated on {', '.join(calibration.features)}")
+        wear = trained.wear
+        print(
+            f"    wear axis from first {wear.window} strokes, {wear.budget} real/endpoint: "
+            f"the withheld state sits at {centre_placement(trained.data, wear):.3f}"
+        )
         best = calibration.best()
         if best is None:
             print("    ! the withheld centre state is never placed better than the control")

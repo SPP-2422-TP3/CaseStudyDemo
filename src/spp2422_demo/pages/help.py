@@ -10,7 +10,7 @@ from dash import html
 
 from spp2422_demo.components.layout import caveat, page_header, panel
 
-dash.register_page(__name__, path="/help", name="Help", order=5)
+dash.register_page(__name__, path="/help", name="Help", order=6)
 
 PROJECT_URL = "https://www.ifu.uni-stuttgart.de/spp-2422/teilprojekte/teilprojekt-3/"
 PUBLICATIONS_URL = "https://www.ifu.uni-stuttgart.de/spp-2422/publikationen/"
@@ -191,6 +191,29 @@ GROUPS: list[tuple[str, str, list[Paper]]] = [
 ]
 
 GLOSSARY = [
+    (
+        "The status board",
+        "The landing page, and an assembled press run rather than a recording. Every stroke on "
+        "it is a real measured stroke shown with its own model's prediction; the order they "
+        "arrive in is authored, because the data holds fixed wear levels and fixed infeeds but "
+        "no transition between them. Wear and misalignment also come from two separate "
+        "campaigns on separate tooling.",
+    ),
+    (
+        "Good, watch, stop",
+        "The state of a signal, and of the machine as its worst signal. Wear states come from "
+        "the classifier as the majority call over the last 20 strokes — the accurate "
+        "instrument, and one odd stroke should not stop a press. Alignment reads the running "
+        "mean of 10 against a tolerance that is set for the demo, not taken from the trials.",
+    ),
+    (
+        "The wear percentage",
+        "Where a stroke sits between a pristine tool and a worn-out one on the friction axis: "
+        "0 at one anchor, 1 at the other. It is continuous, so it can show a tool approaching "
+        "a level rather than only arriving at one — and it is far noisier than the classifier, "
+        "so it never raises an alarm on its own. It is not a fraction of life consumed; nothing "
+        "in this data records when a tool was retired.",
+    ),
     (
         "T1 – T3 and A1 – A3",
         "The wear state of the deep drawing and ironing tools, recorded with the trials as "

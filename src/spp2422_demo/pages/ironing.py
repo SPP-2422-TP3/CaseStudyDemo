@@ -6,7 +6,7 @@ import dash
 
 from spp2422_demo.station_view import layout as station_layout
 
-dash.register_page(__name__, path="/ironing", name="Ironing", order=2)
+dash.register_page(__name__, path="/ironing", name="Ironing", order=3)
 
 
 def layout(**_kwargs):

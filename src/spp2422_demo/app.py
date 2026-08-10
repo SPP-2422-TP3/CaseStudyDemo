@@ -20,12 +20,32 @@ PAGES = HERE / "pages"
 
 TITLE = "SPP 2422 · TP3 — Tool Wear from Forming Forces"
 
+# The status board is the page the dashboard opens on; everything that argues about how
+# the models work sits one menu behind it. A page opts in by setting `top_level=True`.
+DETAILS = "Details"
+
+
+def _nav() -> list:
+    """Top-level links, then everything else folded into one menu."""
+    pages = sorted(dash.page_registry.values(), key=lambda page: page.get("order", 99))
+    top = [page for page in pages if page.get("top_level")]
+    rest = [page for page in pages if not page.get("top_level")]
+    return [
+        *(dbc.NavLink(page["name"], href=page["relative_path"], active="exact") for page in top),
+        dbc.DropdownMenu(
+            label=DETAILS,
+            nav=True,
+            in_navbar=True,
+            align_end=True,
+            children=[
+                dbc.DropdownMenuItem(page["name"], href=page["relative_path"]) for page in rest
+            ],
+        ),
+    ]
+
 
 def _topbar() -> html.Div:
-    links = [
-        dbc.NavLink(page["name"], href=page["relative_path"], active="exact")
-        for page in sorted(dash.page_registry.values(), key=lambda p: p.get("order", 99))
-    ]
+    links = _nav()
     return html.Div(
         dbc.Container(
             dbc.Row(

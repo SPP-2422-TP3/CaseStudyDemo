@@ -149,6 +149,7 @@ def test_every_page_imports_and_has_a_layout():
     pages = dash.page_registry
     assert {page["path"] for page in pages.values()} == {
         "/",
+        "/overview",
         "/deep-drawing",
         "/ironing",
         "/wear-threshold",
@@ -158,6 +159,10 @@ def test_every_page_imports_and_has_a_layout():
     for page in pages.values():
         assert callable(page["layout"])
         page["layout"]()
+
+    # The status board is the landing page; everything else sits behind the Details menu.
+    top_level = {page["path"] for page in pages.values() if page.get("top_level")}
+    assert top_level == {"/"}
 
 
 @pytest.mark.parametrize("key", STATION_KEYS)

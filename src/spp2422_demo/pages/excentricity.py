@@ -29,7 +29,7 @@ from spp2422_demo.excentricity import (
     overfeed_mm,
 )
 
-dash.register_page(__name__, path="/excentricity", name="Excentricity", order=4)
+dash.register_page(__name__, path="/excentricity", name="Excentricity", order=5)
 
 STREAM_INTERVAL_MS = 700
 STROKES_PER_SERIES = 49

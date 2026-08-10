@@ -12,7 +12,7 @@ from spp2422_demo.components.calibration_figure import placement_figure, quality
 from spp2422_demo.components.layout import caveat, page_header, panel, stat_card
 from spp2422_demo.data import STATIONS
 
-dash.register_page(__name__, path="/wear-threshold", name="Wear Threshold", order=3)
+dash.register_page(__name__, path="/wear-threshold", name="Wear Threshold", order=4)
 
 STATION_SELECT = "threshold-station"
 BODY = "threshold-body"

@@ -351,3 +351,194 @@ body {
   font-size: 0.86rem;
   color: #45505d;
 }
+
+/* ---- status board ------------------------------------------------------ */
+
+.status-card {
+  cursor: pointer;
+  border-left: 4px solid var(--line);
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.status-card:hover {
+  box-shadow: 0 4px 14px rgb(27 36 48 / 14%);
+  transform: translateY(-1px);
+}
+
+.status-good { border-left-color: var(--fresh); }
+.status-watch { border-left-color: var(--worn); }
+.status-critical { border-left-color: var(--critical); }
+
+.card-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.card-open {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.status-card:hover .card-open { color: var(--accent); }
+
+.card-foot {
+  color: var(--muted);
+  font-size: 0.74rem;
+  line-height: 1.35;
+  margin-top: 0.6rem;
+}
+
+.machine-state {
+  align-items: center;
+  display: flex;
+  font-size: 1.55rem;
+  font-weight: 700;
+  gap: 0.55rem;
+  line-height: 1.1;
+}
+
+.status-good .machine-state { color: var(--fresh); }
+.status-watch .machine-state { color: var(--worn); }
+.status-critical .machine-state { color: var(--critical); }
+
+.machine-icon { font-size: 1.7rem; }
+
+.machine-driver {
+  color: var(--muted);
+  font-size: 0.82rem;
+  margin-top: 0.35rem;
+}
+
+.machine-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.9rem;
+}
+
+.chip {
+  background: var(--canvas);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 0.74rem;
+  padding: 0.15rem 0.55rem;
+  white-space: nowrap;
+}
+
+.wear-bar + .wear-bar { margin-top: 0.85rem; }
+
+.bar-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+
+.bar-name { font-size: 0.85rem; font-weight: 600; }
+.bar-value { font-size: 1.1rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.bar-track {
+  background: var(--canvas);
+  border-radius: 999px;
+  height: 9px;
+  margin-top: 0.3rem;
+  overflow: hidden;
+}
+
+.bar-fill {
+  border-radius: 999px;
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.bar-note {
+  color: var(--muted);
+  font-size: 0.74rem;
+  margin-top: 0.25rem;
+}
+
+.alignment-head {
+  align-items: baseline;
+  display: flex;
+  gap: 0.4rem;
+}
+
+.alignment-unit { color: var(--muted); font-size: 0.85rem; }
+
+.alignment-detail {
+  color: var(--muted);
+  font-size: 0.8rem;
+  margin-top: 0.15rem;
+}
+
+/* ---- status detail windows --------------------------------------------- */
+
+.signal-list { display: grid; gap: 0.6rem; }
+
+.signal {
+  border-left: 3px solid var(--line);
+  display: grid;
+  grid-template-columns: 1.4rem 1fr auto;
+  gap: 0.1rem 0.5rem;
+  padding: 0.45rem 0.7rem;
+}
+
+.signal-good { border-left-color: var(--fresh); }
+.signal-watch { border-left-color: var(--worn); }
+.signal-critical { border-left-color: var(--critical); }
+
+.signal-good .signal-icon { color: var(--fresh); }
+.signal-watch .signal-icon { color: var(--worn); }
+.signal-critical .signal-icon { color: var(--critical); }
+
+.signal-name { font-weight: 600; }
+.signal-value { font-variant-numeric: tabular-nums; font-weight: 700; }
+
+.signal-detail {
+  color: var(--muted);
+  font-size: 0.8rem;
+  grid-column: 2 / 4;
+}
+
+.stroke-log { font-size: 0.82rem; margin-bottom: 0; }
+.stroke-log th { color: var(--muted); font-size: 0.72rem; font-weight: 600; text-transform: uppercase; }
+.stroke-log td { font-variant-numeric: tabular-nums; vertical-align: middle; }
+.stroke-log .log-current { background: var(--canvas); font-weight: 600; }
+.log-stroke { color: var(--muted); }
+
+.log-level {
+  border-radius: 3px;
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  margin-right: 0.35rem;
+  padding: 0.05rem 0.3rem;
+}
+
+.log-confidence { color: var(--muted); font-size: 0.75rem; }
+
+.proba-block { margin-top: 0.3rem; }
+
+.proba-row {
+  align-items: center;
+  color: var(--muted);
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: 3.5rem 1fr 2.4rem;
+  padding: 0.12rem 0;
+}
+
+.proba-called { color: var(--ink); font-weight: 600; }
+.proba-name { font-size: 0.8rem; }
+.proba-value { font-size: 0.8rem; font-variant-numeric: tabular-nums; text-align: right; }
+
+.proba-track {
+  background: var(--canvas);
+  border-radius: 999px;
+  height: 7px;
+  overflow: hidden;
+}
+
+.proba-fill { border-radius: 999px; height: 100%; }
