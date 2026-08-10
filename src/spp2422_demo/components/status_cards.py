@@ -12,7 +12,16 @@ import numpy as np
 from dash import dcc, html
 
 from ..data import STATIONS
-from ..health import COLOR, GOOD, ICON, MACHINE_LABEL, Signal, machine_state, worst
+from ..health import (
+    COLOR,
+    GOOD,
+    ICON,
+    MACHINE_HEADLINE,
+    MACHINE_LABEL,
+    Signal,
+    machine_state,
+    worst,
+)
 from ..scenario import ALIGNMENT_WINDOW, WEAR_WINDOW, Run
 from .status_figures import (
     LOG_ROWS,
@@ -41,12 +50,17 @@ def card_id(card: str) -> dict[str, str]:
     return {"type": "status-card", "card": card}
 
 
-def _shell(card: str, state: str, *children) -> html.Div:
-    """A clickable card, tinted by its state and named by its title.
+def _shell(card: str, state: str, *children, solid: bool = False) -> html.Div:
+    """A clickable card, coloured by its state and named by its title.
+
+    `solid` floods the whole card with the state colour instead of accenting its edge.
+    The machine verdict uses it: a card that is green or red across its full area is
+    legible from the other side of a press hall, where a coloured edge is not.
 
     The click lives on a wrapping div rather than the card: `dbc.Card` has no `n_clicks`,
     so a callback bound to the card itself would never fire.
     """
+    fill = " status-solid" if solid else ""
     return html.Div(
         dbc.Card(
             dbc.CardBody(
@@ -61,7 +75,7 @@ def _shell(card: str, state: str, *children) -> html.Div:
                     *children,
                 ]
             ),
-            className=f"status-card status-{state} h-100",
+            className=f"status-card status-{state}{fill} h-100",
         ),
         id=card_id(card),
         n_clicks=0,
@@ -108,7 +122,10 @@ def machine_card(state: str, signals: list[Signal]) -> html.Div:
         MACHINE,
         state,
         html.Div(
-            [html.Span(ICON[state], className="machine-icon"), html.Span(MACHINE_LABEL[state])],
+            [
+                html.Div(ICON[state], className="machine-icon"),
+                html.Div(MACHINE_LABEL[state], className="machine-word"),
+            ],
             className="machine-state",
         ),
         html.Div(reason, className="machine-driver"),
@@ -116,6 +133,7 @@ def machine_card(state: str, signals: list[Signal]) -> html.Div:
             [html.Span(f"{signal.name} {signal.value}", className="chip") for signal in signals],
             className="machine-chips",
         ),
+        solid=True,
     )
 
 
@@ -239,7 +257,7 @@ def detail(card: str, run: Run, stroke: int, tolerance_mm: float) -> tuple[str, 
             ]
         )
 
-    return MACHINE_LABEL[state], html.Div(
+    return MACHINE_HEADLINE[state], html.Div(
         [
             html.Div(
                 [

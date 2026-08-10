@@ -32,10 +32,12 @@ RANK = {GOOD: 0, WATCH: 1, CRITICAL: 2}
 COLOR = {GOOD: LEVEL_COLORS[1], WATCH: LEVEL_COLORS[2], CRITICAL: LEVEL_COLORS[3]}
 ICON = {GOOD: "✓", WATCH: "▲", CRITICAL: "⚠"}
 
-# What the whole machine is doing, as opposed to what one signal says.
-MACHINE_LABEL = {
+# What the whole machine is doing, as opposed to what one signal says. The board shows the
+# short word, sized to be read across a press hall; the detail window shows the sentence.
+MACHINE_LABEL = {GOOD: "OK", WATCH: "WATCH", CRITICAL: "STOP"}
+MACHINE_HEADLINE = {
     GOOD: "Running normally",
-    WATCH: "Watch",
+    WATCH: "Watch this press",
     CRITICAL: "Stop the press",
 }
 

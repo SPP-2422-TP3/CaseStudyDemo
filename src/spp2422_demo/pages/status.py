@@ -2,7 +2,11 @@
 
 The rest of the dashboard argues about models. This page assumes the argument was won and
 shows what the models are for -- one glance, three answers, and the evidence one click
-behind each of them.
+behind each of them. It is laid out as press-side equipment rather than as a report: a
+machine bar carrying the stroke count, the cards, and the controls last.
+
+What the board is assembled from, and what it may not be read as, is in the Help glossary
+rather than on the board itself -- a shop-floor screen is not where a caveat gets read.
 """
 
 from __future__ import annotations
@@ -11,7 +15,6 @@ import dash
 import dash_bootstrap_components as dbc
 from dash import ALL, Input, Output, State, callback, ctx, dcc, html, no_update
 
-from spp2422_demo.components.layout import caveat, page_header
 from spp2422_demo.components.status_cards import board, detail
 from spp2422_demo.health import DEFAULT_TOLERANCE_MM
 from spp2422_demo.scenario import N_STROKES, SCENARIOS, WEAR_WINDOW, load_run
@@ -24,96 +27,104 @@ STREAM_INTERVAL_MS = 600
 FIRST_STROKE = WEAR_WINDOW - 1
 
 
-def _controls() -> dbc.Row:
-    return dbc.Row(
+def _machine_bar() -> html.Div:
+    """The equipment strip: what this is, how many strokes it has run, and the run control."""
+    return html.Div(
         [
-            dbc.Col(
+            html.Div(
                 [
-                    html.Div("Press run", className="form-label"),
-                    dcc.Dropdown(
-                        id="status-scenario",
-                        options=[
-                            {"label": scenario.name, "value": key}
-                            for key, scenario in SCENARIOS.items()
-                        ],
-                        value=next(iter(SCENARIOS)),
-                        clearable=False,
+                    html.Div("Progressive die · press cell", className="hmi-label"),
+                    html.Div(
+                        "Deep drawing · Ironing · Strip feed",
+                        className="hmi-line",
                     ),
-                ],
-                lg=3,
-                className="mb-2",
+                ]
             ),
-            dbc.Col(
+            html.Div(
                 [
-                    html.Div("Stroke", className="form-label"),
-                    dcc.Slider(
-                        id="status-stroke",
-                        min=FIRST_STROKE,
-                        max=N_STROKES - 1,
-                        step=1,
-                        value=FIRST_STROKE,
-                        marks={
-                            value: str(value + 1)
-                            for value in (FIRST_STROKE, 99, 199, N_STROKES - 1)
-                        },
-                        tooltip={"placement": "bottom", "always_visible": False},
-                    ),
+                    html.Div("Strokes", className="hmi-label"),
+                    html.Div(id="status-counter", className="hmi-counter"),
                 ],
-                lg=5,
-                className="mb-2",
+                className="hmi-count",
             ),
-            dbc.Col(
+            html.Div(
                 [
-                    html.Div("Tolerance at the cup (mm)", className="form-label"),
-                    dcc.Slider(
-                        id="status-tolerance",
-                        min=0.30,
-                        max=0.90,
-                        step=0.15,
-                        value=DEFAULT_TOLERANCE_MM,
-                        marks={value: f"{value:.2f}" for value in (0.30, 0.45, 0.60, 0.75, 0.90)},
-                    ),
+                    html.Span(id="status-live-dot", className="hmi-dot"),
+                    dbc.Button("Run", id="status-play", className="hmi-button"),
                 ],
-                lg=2,
-                className="mb-2",
-            ),
-            dbc.Col(
-                [
-                    html.Div("Live", className="form-label"),
-                    dbc.Button("▶ Run", id="status-play", color="primary", outline=True),
-                ],
-                lg=2,
-                className="mb-2",
+                className="hmi-run",
             ),
         ],
-        className="g-3 align-items-end mb-4",
+        className="hmi-bar",
+    )
+
+
+def _controls() -> html.Div:
+    return html.Div(
+        dbc.Row(
+            [
+                dbc.Col(
+                    [
+                        html.Div("Press run", className="form-label"),
+                        dcc.Dropdown(
+                            id="status-scenario",
+                            options=[
+                                {"label": scenario.name, "value": key}
+                                for key, scenario in SCENARIOS.items()
+                            ],
+                            value=next(iter(SCENARIOS)),
+                            clearable=False,
+                        ),
+                    ],
+                    lg=4,
+                ),
+                dbc.Col(
+                    [
+                        html.Div("Jump to stroke", className="form-label"),
+                        dcc.Slider(
+                            id="status-stroke",
+                            min=FIRST_STROKE,
+                            max=N_STROKES - 1,
+                            step=1,
+                            value=FIRST_STROKE,
+                            marks={
+                                value: str(value + 1)
+                                for value in (FIRST_STROKE, 99, 199, N_STROKES - 1)
+                            },
+                            tooltip={"placement": "bottom", "always_visible": False},
+                        ),
+                    ],
+                    lg=5,
+                ),
+                dbc.Col(
+                    [
+                        html.Div("Alignment tolerance (mm)", className="form-label"),
+                        dcc.Slider(
+                            id="status-tolerance",
+                            min=0.30,
+                            max=0.90,
+                            step=0.15,
+                            value=DEFAULT_TOLERANCE_MM,
+                            marks={
+                                value: f"{value:.2f}" for value in (0.30, 0.45, 0.60, 0.75, 0.90)
+                            },
+                        ),
+                    ],
+                    lg=3,
+                ),
+            ],
+            className="g-4 align-items-end",
+        ),
+        className="hmi-controls",
     )
 
 
 def layout(**_kwargs):
     return html.Div(
         [
-            page_header(
-                "Machine status",
-                "Two forming stations and the strip feed, read off the press's own force "
-                "signals, stroke by stroke.",
-            ),
+            _machine_bar(),
+            html.Div(id="status-board", className="hmi-board"),
             _controls(),
-            html.Div(id="status-board"),
-            html.Div(id="status-summary", className="section-note mt-2"),
-            caveat(
-                [
-                    html.Strong("This is an assembled run, not a recording. "),
-                    "Every stroke on screen is a real measured stroke shown with its own "
-                    "model's prediction. What is authored is the order they arrive in: the "
-                    "data holds nine production runs at fixed wear levels and seven feed "
-                    "series at fixed infeed, never a transition between them. Wear and "
-                    "misalignment also come from two separate measurement campaigns on "
-                    "separate tooling, so presenting them as one machine is a composition. ",
-                    dcc.Link("The research pages", href="/overview"),
-                    " show the same models without the staging.",
-                ]
-            ),
             dcc.Interval(id="status-interval", interval=STREAM_INTERVAL_MS, disabled=True),
             dbc.Modal(
                 [
@@ -125,25 +136,24 @@ def layout(**_kwargs):
                 is_open=False,
                 scrollable=True,
             ),
-        ]
+        ],
+        className="hmi",
     )
 
 
 @callback(
     Output("status-board", "children"),
-    Output("status-summary", "children"),
+    Output("status-counter", "children"),
     Input("status-scenario", "value"),
     Input("status-stroke", "value"),
     Input("status-tolerance", "value"),
 )
 def _board(scenario_key, stroke, tolerance):
-    run = load_run(scenario_key)
-    summary = (
-        f"{run.scenario.summary} Wear read by "
-        + ", ".join(f"{name.lower()}" for name in sorted(set(run.model_name.values())))
-        + f"; stroke {stroke + 1} of {N_STROKES}."
-    )
-    return board(run, stroke, tolerance), summary
+    counter = [
+        html.Span(f"{stroke + 1:,}".replace(",", " "), className="hmi-counter-value"),
+        html.Span(f"/ {N_STROKES}", className="hmi-counter-total"),
+    ]
+    return board(load_run(scenario_key), stroke, tolerance), counter
 
 
 @callback(
@@ -159,12 +169,15 @@ def _advance(_ticks, stroke):
 @callback(
     Output("status-interval", "disabled"),
     Output("status-play", "children"),
+    Output("status-live-dot", "className"),
     Input("status-play", "n_clicks"),
     State("status-interval", "disabled"),
     prevent_initial_call=True,
 )
 def _toggle(_clicks, disabled):
-    return (False, "❚❚ Pause") if disabled else (True, "▶ Run")
+    if disabled:
+        return False, "Pause", "hmi-dot hmi-dot-live"
+    return True, "Run", "hmi-dot"
 
 
 @callback(

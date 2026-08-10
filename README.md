@@ -37,9 +37,10 @@ to be scheduled:
 | **Normal production** | fresh tools throughout | the two lowest recorded infeeds |
 | **Tool wear and drifting strip** | T1/A1 → T2/A2 → T3/A3, crossfaded | ramped 60.00 → 60.30 mm |
 
-Two further compositions the board states on its own face: wear and misalignment come from separate
-measurement campaigns on separate tooling, and the first strokes of each block are skipped because a
-cold die reads as a briefly worn one.
+Two further compositions: wear and misalignment come from separate measurement campaigns on separate
+tooling, and the first strokes of each block are skipped because a cold die reads as a briefly worn
+one. The board itself is laid out as press-side equipment and carries none of this — a shop-floor
+screen is not where a caveat gets read — so it lives in the **Help** glossary instead.
 
 Each signal is read by the instrument that suits it. The **state** — good, watch, stop — comes from
 the classifier, as the majority call over the last 20 strokes, because that is the accurate
