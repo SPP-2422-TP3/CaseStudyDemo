@@ -100,23 +100,38 @@ even the first start is instant. Force a rebuild with `uv run spp2422-demo prepa
 ## Putting it on the web
 
 The dashboard needs a Python server — every card, modal and stream tick is a server-side callback —
-so GitHub Pages cannot host it. `.github/workflows/deploy.yml` publishes it to a
-[Hugging Face Space](https://huggingface.co/docs/hub/spaces) instead: free, no card, and a permanent
-public URL. **Three manual steps, once:**
+so **GitHub Pages cannot host it**. What it needs is somewhere to run the `Dockerfile`.
 
-1. Create a free account at <https://huggingface.co/join>, then a Space at
-   <https://huggingface.co/new-space> — any name, **SDK: Docker**, visibility Public.
-2. Make a token at <https://huggingface.co/settings/tokens> with **Write** permission. In this
-   repository, *Settings → Secrets and variables → Actions*, add it as a secret named `HF_TOKEN`.
-3. On the *Variables* tab beside it, add `HF_SPACE` with the value `<your-username>/<space-name>`.
+The image idles at about 270 MB with one worker and peaks near 330 MB while it computes an
+attribution, which is what decides where it fits. `WEB_CONCURRENCY` sets the worker count: two by
+default, one on a small instance.
 
-Push to `main` and the workflow deploys. The Space builds the `Dockerfile` and comes up at
-`https://huggingface.co/spaces/<your-username>/<space-name>`. Until both settings exist the workflow
-skips rather than fails, so the repository is not red while you are getting to it.
+### Free, no credit card — Render
 
-What to expect from the free tier: the first build takes several minutes (it installs torch), and a
-Space with no visitors for a couple of days sleeps and takes about a minute to wake on the next
-visit. Anyone with the link can open it — there is nothing private in the demo, but it is public.
+`render.yaml` is a blueprint for [Render](https://render.com)'s free instance: 512 MB, 0.1 CPU, a
+permanent public URL. Sign up, *New → Blueprint*, point it at this repository, deploy. Nothing to
+configure — the blueprint pins one worker and Render supplies `PORT`.
+
+The free instance **spins down after 15 minutes without traffic** and takes about a minute to wake,
+and 0.1 CPU makes it noticeably slower than a laptop — opening an attribution takes seconds rather
+than being instant. Fine for a link someone can look at; not what you want mid-talk.
+
+### Paid, and the least work — Hugging Face Spaces
+
+`.github/workflows/deploy.yml` pushes to a [Space](https://huggingface.co/docs/hub/spaces) on every
+push to `main`. Note that **Docker Spaces are not free**: static Spaces are, and Gradio Spaces on
+ZeroGPU are, but a Docker Space needs PRO for a personal account or Team for an organisation. In
+exchange you get 2 vCPU and 16 GB, which this runs comfortably on. **Three steps, once:**
+
+1. A Space at <https://huggingface.co/new-space> — **SDK: Docker**, visibility Public.
+2. A **Write** token at <https://huggingface.co/settings/tokens>, added to this repository under
+   *Settings → Secrets and variables → Actions* as the secret `HF_TOKEN`.
+3. On the *Variables* tab beside it, `HF_SPACE` = `<owner>/<space-name>`.
+
+Until both exist the workflow skips rather than fails, so the repository is not red meanwhile.
+
+Either way the link is public and unauthenticated. There is nothing private in the demo, but anyone
+who has the URL reaches it.
 
 ### Just for a talk
 

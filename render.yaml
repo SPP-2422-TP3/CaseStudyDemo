@@ -1,0 +1,16 @@
+# One-click deploy: https://render.com → New → Blueprint → point at this repository.
+#
+# Render's free instance is 512 MB and 0.1 CPU. The image idles at ~270 MB with a single
+# worker and peaks around 330 MB while computing an attribution, so it fits -- but only
+# with one worker, which is why WEB_CONCURRENCY is pinned here rather than left at the
+# image's default of two.
+services:
+  - type: web
+    name: spp2422-demo
+    runtime: docker
+    plan: free
+    region: frankfurt
+    healthCheckPath: /
+    envVars:
+      - key: WEB_CONCURRENCY
+        value: 1

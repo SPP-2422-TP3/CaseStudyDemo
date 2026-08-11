@@ -26,12 +26,16 @@ RUN uv sync --frozen --no-dev --extra deploy --no-install-project
 COPY --chown=demo:demo . .
 RUN uv sync --frozen --no-dev --extra deploy
 
-# Hosts that pick their own port set PORT; everything else gets 8050.
-ENV PORT=8050
+# Hosts that pick their own port set PORT; everything else gets 8050. WEB_CONCURRENCY is
+# the same convention: two workers is right on a normal host, but the whole process tree
+# holds roughly 570 MB idle and 640 MB while an attribution is being computed, so a small
+# instance wants one.
+ENV PORT=8050 \
+    WEB_CONCURRENCY=2
 EXPOSE 8050
 
 # gunicorn, not `spp2422-demo serve`: that runs Flask's development server, which is not
 # meant to face anyone but its author. Callbacks keep no server-side state, so workers are
 # interchangeable and a request may land on any of them.
-CMD gunicorn --bind "0.0.0.0:${PORT}" --workers 2 --threads 4 --timeout 120 \
-    spp2422_demo.app:server
+CMD gunicorn --bind "0.0.0.0:${PORT}" --workers "${WEB_CONCURRENCY}" --threads 4 \
+    --timeout 120 spp2422_demo.app:server
