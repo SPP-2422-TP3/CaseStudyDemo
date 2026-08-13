@@ -123,4 +123,6 @@ def _chrome(pathname: str | None):
     if pathname == STATUS_PATH:
         return "topbar topbar-hidden", "py-3"
     return "topbar", "py-4"
+
+
 server = app.server  # for a WSGI host: `gunicorn spp2422_demo.app:server`

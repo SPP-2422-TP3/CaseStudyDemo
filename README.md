@@ -31,8 +31,21 @@ about *how* the models work sits behind the **Details** menu:
 The run it watches is **assembled, not recorded**. Every stroke on screen is a real measured stroke
 shown with its own model's prediction; what is authored is the order they arrive in. The data holds
 nine production runs at *fixed* wear levels and seven feed series at *fixed* infeed — snapshots of
-states, never a transition between them — so a run that degrades has to be scheduled: the tools walk
-T1/A1 → T2/A2 → T3/A3 with crossfaded transitions while the strip feed ramps 60.00 → 60.30 mm.
+states, never a transition between them — so a run that degrades has to be scheduled.
+
+Two are offered, picked in the machine bar, and each carries **one** fault, because a board that
+showed both at once could never be seen to tell them apart:
+
+- **Scenario 1 · Tool wear.** Ironing goes off first (A1 → A2 around stroke 90) and reaches A3 near
+  the end; deep drawing follows much later and over twice the span (T1 → T2 around stroke 190). The
+  strip stays centred throughout. The two tools are deliberately not on the same clock — all nine
+  T × A combinations were measured, so a stroke at T1/A2 is as real as one at T1/A1.
+- **Scenario 2 · Strip misalignment.** Both tools stay fresh while the feed ramps 60.00 → 60.30 mm
+  in the 0.05 mm steps the campaign actually ran, taking the cup from centred to 0.90 mm off.
+
+Wear levels crossfade over their transitions — strokes are drawn from both recorded runs with a
+ramping probability — so the rolling means drift rather than step. Nothing interpolates between two
+strokes and no curve is synthesised.
 
 Two further compositions: wear and misalignment come from separate measurement campaigns on separate
 tooling, and the first strokes of each block are skipped because a cold die reads as a briefly worn

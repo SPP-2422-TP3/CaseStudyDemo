@@ -21,7 +21,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 
 from .data import LEVELS, STATIONS
-from .health import majority_level
+from .health import GOOD, alignment_state, majority_level
 from .scenario import Run
 
 # How far back a report can reach, in strokes. A progressive die runs on the order of a
@@ -58,6 +58,7 @@ class Report:
     note: str  # whatever else they wanted to say, in their own words
     called: dict[str, int]  # station key -> the wear level the monitor held over the window
     alignment_mm: float  # the monitor's mean misalignment over the window
+    tolerance_mm: float  # the tolerance in force at the time, which decides what that meant
 
     @property
     def label(self) -> str:
@@ -83,12 +84,16 @@ class Report:
         collecting. Agreement is a confirmation, which is worth much less.
         """
         flagged = [STATIONS[key].name for key, level in self.called.items() if level > FRESH]
+        if alignment_state(self.alignment_mm, self.tolerance_mm) != GOOD:
+            flagged.append("strip alignment")
         if flagged:
             return "the monitor had already raised " + ", ".join(sorted(flagged))
         return "the monitor read every signal as normal over this window"
 
 
-def report(run: Run, stroke: int, window: int, issue: str, note: str) -> Report:
+def report(
+    run: Run, stroke: int, window: int, issue: str, note: str, tolerance_mm: float
+) -> Report:
     """Capture what the monitor was saying across the window the operator just flagged.
 
     `stroke` is where the press was when the operator opened the form, not when they
@@ -102,6 +107,7 @@ def report(run: Run, stroke: int, window: int, issue: str, note: str) -> Report:
         note=note.strip(),
         called={key: majority_level(run, key, stroke) for key in STATIONS},
         alignment_mm=run.smoothed_alignment(stroke),
+        tolerance_mm=tolerance_mm,
     )
 
 

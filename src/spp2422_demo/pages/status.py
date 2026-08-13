@@ -3,7 +3,12 @@
 The rest of the dashboard argues about models. This page assumes the argument was won and
 shows what the models are for -- one glance, three answers, and the evidence one click
 behind each of them. It is laid out as press-side equipment rather than as a report: a
-machine bar carrying the stroke count, the cards, and the controls last.
+machine bar carrying the scenario and the stroke count, the cards, and the controls last.
+
+The two scenarios are separate faults deliberately: one press run where the tools wear at
+their own pace and the strip stays put, one where the strip walks off centre and the tools
+do not. A board worth having has to say *which* of the two is happening, and it can only
+be seen to do that if the two are shown apart.
 
 What the board is assembled from, and what it may not be read as, is in the Help glossary
 rather than on the board itself -- a shop-floor screen is not where a caveat gets read.
@@ -25,7 +30,13 @@ from spp2422_demo.feedback import (
     to_store,
 )
 from spp2422_demo.health import DEFAULT_TOLERANCE_MM
-from spp2422_demo.scenario import N_STROKES, WEAR_WINDOW, load_run
+from spp2422_demo.scenario import (
+    DEFAULT_SCENARIO,
+    N_STROKES,
+    SCENARIOS,
+    WEAR_WINDOW,
+    load_run,
+)
 
 dash.register_page(__name__, path="/", name="Status", order=0, top_level=True)
 
@@ -35,8 +46,36 @@ STREAM_INTERVAL_MS = 600
 FIRST_STROKE = WEAR_WINDOW - 1
 
 
+def _scenario_picker() -> html.Div:
+    """Which of the two authored runs the board is watching.
+
+    It sits in the machine bar rather than down with the sliders: the scenario decides
+    what every card is saying, so it belongs where the press identifies itself, not among
+    the controls that only change the view.
+    """
+    return html.Div(
+        [
+            html.Div("Scenario", className="hmi-label"),
+            dbc.RadioItems(
+                id="status-scenario",
+                options=[
+                    {"label": f"{scenario.name} · {scenario.headline}", "value": key}
+                    for key, scenario in SCENARIOS.items()
+                ],
+                value=DEFAULT_SCENARIO,
+                className="btn-group hmi-choice",
+                inputClassName="btn-check",
+                labelClassName="btn hmi-choice-button",
+                labelCheckedClassName="active",
+            ),
+            html.Div(id="status-scenario-note", className="hmi-note"),
+        ],
+        className="hmi-scenario",
+    )
+
+
 def _machine_bar() -> html.Div:
-    """The equipment strip: what this is, how many strokes it has run, and the run control."""
+    """The equipment strip: what this is, what it is running, and how far into it."""
     return html.Div(
         [
             html.Div(
@@ -48,9 +87,10 @@ def _machine_bar() -> html.Div:
                     ),
                 ]
             ),
+            _scenario_picker(),
             html.Div(
                 [
-                    html.Div("Strokes", className="hmi-label"),
+                    html.Div("Stroke", className="hmi-label"),
                     html.Div(id="status-counter", className="hmi-counter"),
                 ],
                 className="hmi-count",
@@ -252,15 +292,31 @@ def layout(**_kwargs):
 @callback(
     Output("status-board", "children"),
     Output("status-counter", "children"),
+    Output("status-scenario-note", "children"),
     Input("status-stroke", "value"),
     Input("status-tolerance", "value"),
+    Input("status-scenario", "value"),
 )
-def _board(stroke, tolerance):
-    counter = [
-        html.Span(f"{stroke + 1:,}".replace(",", " "), className="hmi-counter-value"),
-        html.Span(f"/ {N_STROKES}", className="hmi-counter-total"),
-    ]
-    return board(load_run(), stroke, tolerance), counter
+def _board(stroke, tolerance, scenario_key):
+    run = load_run(scenario_key)
+    counter = html.Span(f"{stroke + 1:,}".replace(",", " "), className="hmi-counter-value")
+    return board(run, stroke, tolerance), counter, run.scenario.summary
+
+
+@callback(
+    Output("status-stroke", "value", allow_duplicate=True),
+    Output("status-reports", "data", allow_duplicate=True),
+    Input("status-scenario", "value"),
+    prevent_initial_call=True,
+)
+def _restart(_scenario_key):
+    """A different scenario is a different press run: rewind, and drop the old reports.
+
+    The reports are pinned to stroke numbers, and stroke 200 of one run has nothing to do
+    with stroke 200 of the other. Carrying them across would put an operator's verdict
+    against strokes they never saw.
+    """
+    return FIRST_STROKE, []
 
 
 @callback(
@@ -288,14 +344,16 @@ def _open_feedback(_clicks, stroke):
     State("status-feedback-window", "value"),
     State("status-feedback-issue", "value"),
     State("status-feedback-note", "value"),
+    State("status-scenario", "value"),
+    State("status-tolerance", "value"),
     prevent_initial_call=True,
 )
-def _record_report(_submit, _cancel, stored, anchor, window, issue, note):
+def _record_report(_submit, _cancel, stored, anchor, window, issue, note, scenario_key, tolerance):
     """Take the operator's word for it and record what the monitor said at the time."""
     if ctx.triggered_id == "status-feedback-cancel" or anchor is None:
         return no_update, False
     reports = from_store(stored)
-    reports.append(report(load_run(), anchor, window, issue, note or ""))
+    reports.append(report(load_run(scenario_key), anchor, window, issue, note or "", tolerance))
     return to_store(reports), False
 
 
@@ -355,14 +413,15 @@ def _toggle(_clicks, disabled):
     State("status-stroke", "value"),
     State("status-tolerance", "value"),
     State("status-reports", "data"),
+    State("status-scenario", "value"),
     prevent_initial_call=True,
 )
-def _open_detail(clicks, stroke, tolerance, stored):
+def _open_detail(clicks, stroke, tolerance, stored, scenario_key):
     # Dash fires this when the board is rebuilt as well as when a card is clicked; only
     # an actual click carries a count on the card that triggered it.
     if not ctx.triggered_id or not any(clicks or []):
         return no_update, no_update, no_update
     title, body = detail(
-        ctx.triggered_id["card"], load_run(), stroke, tolerance, from_store(stored)
+        ctx.triggered_id["card"], load_run(scenario_key), stroke, tolerance, from_store(stored)
     )
     return True, title, body

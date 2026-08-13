@@ -553,7 +553,8 @@ body {
   border-radius: 10px;
   color: #fff;
   display: flex;
-  gap: 1.5rem;
+  flex-wrap: wrap;
+  gap: 0.9rem 1.5rem;
   padding: 0.85rem 1.25rem;
 }
 
@@ -571,7 +572,34 @@ body {
   margin-top: 0.1rem;
 }
 
-.hmi-count { margin-left: auto; text-align: right; }
+.hmi-scenario { margin-left: auto; }
+
+.hmi-choice { display: inline-flex; margin-top: 0.25rem; }
+
+.hmi-choice-button.btn {
+  background: rgb(255 255 255 / 8%);
+  border: 1px solid rgb(255 255 255 / 28%);
+  color: rgb(255 255 255 / 72%);
+  font-size: 0.82rem;
+  font-weight: 600;
+  padding: 0.25rem 0.7rem;
+}
+
+.hmi-choice-button.btn:hover { background: rgb(255 255 255 / 18%); color: #fff; }
+
+.hmi-choice-button.btn.active {
+  background: #fff;
+  border-color: #fff;
+  color: var(--ink);
+}
+
+.hmi-note {
+  color: rgb(255 255 255 / 58%);
+  font-size: 0.72rem;
+  margin-top: 0.3rem;
+}
+
+.hmi-count { text-align: right; }
 
 .hmi-counter {
   font-variant-numeric: tabular-nums;
@@ -581,13 +609,6 @@ body {
 }
 
 .hmi-counter-value { font-size: 2rem; font-weight: 800; letter-spacing: -0.02em; }
-
-.hmi-counter-total {
-  color: rgb(255 255 255 / 55%);
-  font-size: 0.95rem;
-  font-weight: 600;
-  margin-left: 0.35rem;
-}
 
 .hmi-run { align-items: center; display: flex; gap: 0.7rem; }
 

@@ -196,9 +196,18 @@ GLOSSARY = [
         "The landing page, and an assembled press run rather than a recording. Every stroke on "
         "it is a real measured stroke shown with its own model's prediction; the order they "
         "arrive in is authored, because the data holds fixed wear levels and fixed infeeds but "
-        "no transition between them — the tools are scheduled to walk from fresh to critical "
-        "while the strip drifts off centre. Wear and misalignment also come from two separate "
+        "no transition between them. Wear and misalignment also come from two separate "
         "campaigns on separate tooling, so showing them as one machine is a composition.",
+    ),
+    (
+        "Scenario 1 and Scenario 2",
+        "The two authored runs the machine bar switches between, each carrying one fault. In "
+        "Scenario 1 the tools wear and the strip stays centred — ironing goes off first and "
+        "ends critical, deep drawing follows much later and over twice the span, because two "
+        "tools on one press do not go off together and a board worth having has to say which "
+        "one went. In Scenario 2 both tools stay fresh while the strip walks off centre "
+        "through every overfeed level the campaign ran. One fault at a time is the point: "
+        "shown together, nothing would demonstrate that the board can tell them apart.",
     ),
     (
         "Good, watch, stop",
