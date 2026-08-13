@@ -352,6 +352,29 @@ body {
   color: #45505d;
 }
 
+/* The row of onward links on the details page: buttons in everything but name, so a
+   visitor who has read the overview can see where the deeper pages are. */
+.page-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.page-link {
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  color: var(--accent);
+  font-size: 0.88rem;
+  font-weight: 600;
+  padding: 0.35rem 0.8rem;
+  text-decoration: none;
+}
+
+.page-link:hover {
+  background: #eef1f6;
+  color: var(--accent);
+}
+
 /* ---- status board ------------------------------------------------------ */
 
 .status-card {
@@ -572,9 +595,7 @@ body {
   margin-top: 0.1rem;
 }
 
-.hmi-scenario { margin-left: auto; }
-
-.hmi-choice { display: inline-flex; margin-top: 0.25rem; }
+.hmi-choice { display: inline-flex; margin-left: auto; }
 
 .hmi-choice-button.btn {
   background: rgb(255 255 255 / 8%);
@@ -591,12 +612,6 @@ body {
   background: #fff;
   border-color: #fff;
   color: var(--ink);
-}
-
-.hmi-note {
-  color: rgb(255 255 255 / 58%);
-  font-size: 0.72rem;
-  margin-top: 0.3rem;
 }
 
 .hmi-count { text-align: right; }
@@ -704,8 +719,6 @@ body {
   margin-top: 1.4rem;
   padding-top: 0.9rem;
 }
-
-.hmi-links .form-label { margin: 0; }
 
 .hmi-link {
   color: var(--accent);

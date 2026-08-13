@@ -13,10 +13,11 @@ about the condition of the tools.
 
 The landing page is the **Status** board — three cards that say, at a glance, whether the press can
 keep running, how far the two tools are from worn out, and how far off-centre the strip is being
-fed. Each card opens into the strokes and classifications behind its answer. Everything that argues
-about *how* the models work sits behind the **Details** menu:
+fed. Each card opens into the strokes and classifications behind its answer. The board carries one
+link off it, to **More details** — what the data is, what each model is worth on it, how to read the
+dashboard, and the papers behind it. The pages that take one model apart at a time sit behind that
+page and the **Model detail** menu:
 
-- **Overview** — what the data is, and what each model is worth on it.
 - **Deep Drawing** and **Ironing** — pick a production run and a stroke, pick one of four
   models, and see the predicted wear state. A predicted critical state raises an alert, and the
   prediction can be opened up to show which part of the stroke the model actually read.
@@ -24,7 +25,6 @@ about *how* the models work sits behind the **Details** menu:
 - **Excentricity** — step through measured strokes of the deep-drawing station and read how
   far off-centre the strip was fed, from the slope of the force plateau alone. Crossing the
   alarm limit stops the stream and raises a warning.
-- **Help** — how to read the dashboard, and the papers behind it.
 
 ## The status board
 
@@ -51,7 +51,7 @@ Two further compositions: wear and misalignment come from separate measurement c
 tooling, and the first strokes of each block are skipped because a cold die reads as a briefly worn
 one. The board itself is laid out as press-side equipment, without even the site's top bar, and
 carries none of this — a shop-floor screen is not where a caveat gets read — so it lives in the
-**Help** glossary instead.
+**More details** glossary instead.
 
 Tool wear is reported on the three stages the shop floor already names — **fresh, worn, critical**,
 the T1–T3 and A1–A3 of the trials. The stage badge is the classifier's majority call over the last
@@ -328,8 +328,8 @@ change breaks it the tests fail rather than the page quietly becoming untrue.
 Each content pillar rests on a publication of the project: force-based process state
 classification ([Schumann et al. 2026](https://doi.org/10.1007/s12666-026-03839-4)) and
 simulation-driven modelling of strip misalignment
-([Moske et al. 2025](https://doi.org/10.1088/1742-6596/3104/1/012058)). The **Help** page lists
-these and ten more, grouped by what they contribute.
+([Moske et al. 2025](https://doi.org/10.1088/1742-6596/3104/1/012058)). The **More details** page
+lists these and ten more, grouped by what they contribute.
 
 ## Layout
 

@@ -10,7 +10,7 @@ their own pace and the strip stays put, one where the strip walks off centre and
 do not. A board worth having has to say *which* of the two is happening, and it can only
 be seen to do that if the two are shown apart.
 
-What the board is assembled from, and what it may not be read as, is in the Help glossary
+What the board is assembled from, and what it may not be read as, is on the details page
 rather than on the board itself -- a shop-floor screen is not where a caveat gets read.
 """
 
@@ -41,36 +41,32 @@ from spp2422_demo.scenario import (
 dash.register_page(__name__, path="/", name="Status", order=0, top_level=True)
 
 STREAM_INTERVAL_MS = 600
+# The single page behind the board; see `_details_link`.
+DETAILS_PATH = "/details"
 # The board opens with its trailing windows already full, so the first frame reads the
 # same way every later one does rather than averaging a single stroke.
 FIRST_STROKE = WEAR_WINDOW - 1
 
 
-def _scenario_picker() -> html.Div:
+def _scenario_picker() -> dbc.RadioItems:
     """Which of the two authored runs the board is watching.
 
     It sits in the machine bar rather than down with the sliders: the scenario decides
     what every card is saying, so it belongs where the press identifies itself, not among
-    the controls that only change the view.
+    the controls that only change the view. The buttons carry their own names, so they
+    get neither a label above nor a caption below.
     """
-    return html.Div(
-        [
-            html.Div("Scenario", className="hmi-label"),
-            dbc.RadioItems(
-                id="status-scenario",
-                options=[
-                    {"label": f"{scenario.name} · {scenario.headline}", "value": key}
-                    for key, scenario in SCENARIOS.items()
-                ],
-                value=DEFAULT_SCENARIO,
-                className="btn-group hmi-choice",
-                inputClassName="btn-check",
-                labelClassName="btn hmi-choice-button",
-                labelCheckedClassName="active",
-            ),
-            html.Div(id="status-scenario-note", className="hmi-note"),
+    return dbc.RadioItems(
+        id="status-scenario",
+        options=[
+            {"label": f"{scenario.name} · {scenario.headline}", "value": key}
+            for key, scenario in SCENARIOS.items()
         ],
-        className="hmi-scenario",
+        value=DEFAULT_SCENARIO,
+        className="btn-group hmi-choice",
+        inputClassName="btn-check",
+        labelClassName="btn hmi-choice-button",
+        labelCheckedClassName="active",
     )
 
 
@@ -192,23 +188,15 @@ def _feedback_form() -> dbc.Modal:
     )
 
 
-def _details_links() -> html.Div:
+def _details_link() -> html.Div:
     """The way off the board.
 
-    The status page renders without the site's top bar, so this is the only route to the
-    pages that argue about the models. It is built from the page registry rather than
-    listed by hand, so a new page cannot go missing from it.
+    The status page renders without the site's top bar, so this is the only route to
+    everything else. It is one link rather than a row of them: the board is a shop-floor
+    screen, and the page it points at carries its own way on to the per-station pages.
     """
-    pages = sorted(dash.page_registry.values(), key=lambda page: page.get("order", 99))
     return html.Div(
-        [
-            html.Span("Model detail", className="form-label"),
-            *(
-                dcc.Link(page["name"], href=page["relative_path"], className="hmi-link")
-                for page in pages
-                if not page.get("top_level")
-            ),
-        ],
+        dcc.Link("More details", href=DETAILS_PATH, className="hmi-link"),
         className="hmi-links",
     )
 
@@ -256,7 +244,7 @@ def _controls() -> html.Div:
                 ],
                 className="g-4 align-items-end",
             ),
-            _details_links(),
+            _details_link(),
         ],
         className="hmi-controls",
     )
@@ -292,7 +280,6 @@ def layout(**_kwargs):
 @callback(
     Output("status-board", "children"),
     Output("status-counter", "children"),
-    Output("status-scenario-note", "children"),
     Input("status-stroke", "value"),
     Input("status-tolerance", "value"),
     Input("status-scenario", "value"),
@@ -300,7 +287,7 @@ def layout(**_kwargs):
 def _board(stroke, tolerance, scenario_key):
     run = load_run(scenario_key)
     counter = html.Span(f"{stroke + 1:,}".replace(",", " "), className="hmi-counter-value")
-    return board(run, stroke, tolerance), counter, run.scenario.summary
+    return board(run, stroke, tolerance), counter
 
 
 @callback(

@@ -22,7 +22,7 @@ TITLE = "SPP 2422 · TP3 — Tool Wear from Forming Forces"
 
 # The status board is the page the dashboard opens on; everything that argues about how
 # the models work sits one menu behind it. A page opts in by setting `top_level=True`.
-DETAILS = "Details"
+MODEL_DETAIL = "Model detail"
 # The one page that renders without any site chrome around it.
 STATUS_PATH = "/"
 
@@ -35,7 +35,7 @@ def _nav() -> list:
     return [
         *(dbc.NavLink(page["name"], href=page["relative_path"], active="exact") for page in top),
         dbc.DropdownMenu(
-            label=DETAILS,
+            label=MODEL_DETAIL,
             nav=True,
             in_navbar=True,
             align_end=True,
