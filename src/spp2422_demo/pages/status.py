@@ -20,7 +20,15 @@ import dash
 import dash_bootstrap_components as dbc
 from dash import ALL, Input, Output, State, callback, ctx, dcc, html, no_update
 
-from spp2422_demo.components.status_cards import board, detail
+from spp2422_demo.components.status_cards import (
+    ALIGNMENT,
+    MACHINE,
+    WEAR,
+    board,
+    card_id,
+    card_slots,
+    detail,
+)
 from spp2422_demo.feedback import (
     FEEDBACK_STROKES,
     ISSUES,
@@ -254,7 +262,7 @@ def layout(**_kwargs):
     return html.Div(
         [
             _machine_bar(),
-            html.Div(id="status-board", className="hmi-board"),
+            html.Div(card_slots(), className="hmi-board"),
             html.Div(id="status-reports-strip"),
             _feedback_bar(),
             _controls(),
@@ -278,16 +286,19 @@ def layout(**_kwargs):
 
 
 @callback(
-    Output("status-board", "children"),
+    Output(card_id(MACHINE), "children"),
+    Output(card_id(WEAR), "children"),
+    Output(card_id(ALIGNMENT), "children"),
     Output("status-counter", "children"),
     Input("status-stroke", "value"),
     Input("status-tolerance", "value"),
     Input("status-scenario", "value"),
 )
 def _board(stroke, tolerance, scenario_key):
+    """Redraw the three card faces. The slots holding them are never replaced."""
     run = load_run(scenario_key)
     counter = html.Span(f"{stroke + 1:,}".replace(",", " "), className="hmi-counter-value")
-    return board(run, stroke, tolerance), counter
+    return (*board(run, stroke, tolerance), counter)
 
 
 @callback(
@@ -404,8 +415,9 @@ def _toggle(_clicks, disabled):
     prevent_initial_call=True,
 )
 def _open_detail(clicks, stroke, tolerance, stored, scenario_key):
-    # Dash fires this when the board is rebuilt as well as when a card is clicked; only
-    # an actual click carries a count on the card that triggered it.
+    # The slots are permanent, so a stroke no longer retriggers this -- but returning to
+    # the board from another page mounts them afresh, and only a real click carries a
+    # count on the card that triggered it.
     if not ctx.triggered_id or not any(clicks or []):
         return no_update, no_update, no_update
     title, body = detail(

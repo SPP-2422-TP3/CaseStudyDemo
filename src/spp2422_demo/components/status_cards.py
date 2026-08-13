@@ -61,36 +61,56 @@ def card_id(card: str) -> dict[str, str]:
     return {"type": "status-card", "card": card}
 
 
-def _shell(card: str, state: str, *children, solid: bool = False) -> html.Div:
-    """A clickable card, coloured by its state and named by its title.
+def _shell(card: str, state: str, *children, solid: bool = False) -> dbc.Card:
+    """A card's face, coloured by its state and named by its title.
 
     `solid` floods the whole card with the state colour instead of accenting its edge.
     The machine verdict uses it: a card that is green or red across its full area is
     legible from the other side of a press hall, where a coloured edge is not.
 
-    The click lives on a wrapping div rather than the card: `dbc.Card` has no `n_clicks`,
-    so a callback bound to the card itself would never fire.
+    This is only the face. What carries the click is the slot it is placed into, which
+    outlives it -- see `card_slots`.
     """
     fill = " status-solid" if solid else ""
-    return html.Div(
-        dbc.Card(
-            dbc.CardBody(
-                [
-                    html.Div(
-                        [
-                            html.Span(CARD_TITLE[card], className="card-title"),
-                            html.Span("Details ›", className="card-open"),
-                        ],
-                        className="card-head",
-                    ),
-                    *children,
-                ]
-            ),
-            className=f"status-card status-{state}{fill} h-100",
+    return dbc.Card(
+        dbc.CardBody(
+            [
+                html.Div(
+                    [
+                        html.Span(CARD_TITLE[card], className="card-title"),
+                        html.Span("Details ›", className="card-open"),
+                    ],
+                    className="card-head",
+                ),
+                *children,
+            ]
         ),
-        id=card_id(card),
-        n_clicks=0,
-        className="h-100",
+        className=f"status-card status-{state}{fill} h-100",
+    )
+
+
+def card_slots() -> dbc.Row:
+    """The three clickable frames the cards are drawn into, mounted once.
+
+    They are permanent on purpose, and the faces inside them are what the stroke
+    callback replaces. Rebuilding a card wholesale takes its `n_clicks` back to zero and
+    destroys the component that raised any click still in flight -- so a click landing
+    while the wear card's attribution was still being computed used to be discarded along
+    with it, and the detail window never opened. That is invisible on a laptop, where the
+    attribution beats the next stroke, and reliable on a small host, where it does not.
+
+    `dbc.Card` has no `n_clicks`, which is why the click lives on a wrapping div.
+    """
+    return dbc.Row(
+        [
+            dbc.Col(
+                html.Div(id=card_id(card), n_clicks=0, className="h-100"),
+                lg=4,
+                className="mb-3",
+            )
+            for card in CARDS
+        ],
+        className="g-3",
     )
 
 
@@ -141,7 +161,7 @@ def _stage_bar(name: str, stage: float, level: str, state: str, note: str) -> ht
     )
 
 
-def machine_card(state: str, signals: list[Signal]) -> html.Div:
+def machine_card(state: str, signals: list[Signal]) -> dbc.Card:
     """The verdict, what drove it, and every reading behind it on one line."""
     driving = [signal.name for signal in signals if signal.state == state]
     reason = (
@@ -168,7 +188,7 @@ def machine_card(state: str, signals: list[Signal]) -> html.Div:
     )
 
 
-def wear_card(signals: list[Signal]) -> html.Div:
+def wear_card(signals: list[Signal]) -> dbc.Card:
     wear_signals = [signal for signal in signals if signal.key in STATIONS]
     return _shell(
         WEAR,
@@ -187,7 +207,7 @@ def wear_card(signals: list[Signal]) -> html.Div:
     )
 
 
-def alignment_card(run: Run, stroke: int, signal: Signal, tolerance_mm: float) -> html.Div:
+def alignment_card(run: Run, stroke: int, signal: Signal, tolerance_mm: float) -> dbc.Card:
     strokes = run.window(stroke, FACE_STROKES)
     return _shell(
         ALIGNMENT,
@@ -217,16 +237,14 @@ def alignment_card(run: Run, stroke: int, signal: Signal, tolerance_mm: float) -
     )
 
 
-def board(run: Run, stroke: int, tolerance_mm: float) -> dbc.Row:
+def board(run: Run, stroke: int, tolerance_mm: float) -> tuple[dbc.Card, dbc.Card, dbc.Card]:
+    """The three card faces for one stroke, in the order `card_slots` mounts them."""
     state, signals = machine_state(run, stroke, tolerance_mm)
     alignment = next(signal for signal in signals if signal.key == ALIGNMENT)
-    return dbc.Row(
-        [
-            dbc.Col(machine_card(state, signals), lg=4, className="mb-3"),
-            dbc.Col(wear_card(signals), lg=4, className="mb-3"),
-            dbc.Col(alignment_card(run, stroke, alignment, tolerance_mm), lg=4, className="mb-3"),
-        ],
-        className="g-3",
+    return (
+        machine_card(state, signals),
+        wear_card(signals),
+        alignment_card(run, stroke, alignment, tolerance_mm),
     )
 
 

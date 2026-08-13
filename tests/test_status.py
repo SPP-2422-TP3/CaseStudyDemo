@@ -7,7 +7,7 @@ import pytest
 
 from spp2422_demo.artifacts import load_artifacts
 from spp2422_demo.calibration import CENTRE, ENDPOINTS
-from spp2422_demo.components.status_cards import CARDS, board, detail
+from spp2422_demo.components.status_cards import CARDS, board, card_id, detail
 from spp2422_demo.data import LEVELS, STATIONS
 from spp2422_demo.feedback import (
     FEEDBACK_STROKES,
@@ -153,10 +153,44 @@ def test_one_odd_stroke_cannot_stop_the_press(key):
 def test_every_card_and_detail_window_renders(scenario):
     run = load_run(scenario)
     for stroke in (FIRST_STROKE, N_STROKES // 2, N_STROKES - 1):
-        assert board(run, stroke, TOLERANCE) is not None
+        assert len(board(run, stroke, TOLERANCE)) == len(CARDS)
         for card in CARDS:
             title, body = detail(card, run, stroke, TOLERANCE, [])
             assert title and body is not None
+
+
+def _ids(component) -> set[str]:
+    """Every component id in a tree, as its repr -- pattern-matching ids are dicts."""
+    found = set()
+    stack = [component]
+    while stack:
+        node = stack.pop()
+        if isinstance(node, list | tuple):
+            stack.extend(node)
+            continue
+        if not hasattr(node, "_prop_names"):
+            continue
+        if getattr(node, "id", None) is not None:
+            found.add(repr(node.id))
+        stack.append(getattr(node, "children", None))
+    return found
+
+
+def test_what_takes_the_click_outlives_the_stroke():
+    """The board is redrawn every stroke while the stream runs, and the wear card's
+    detail window costs an attribution to build. If the component carrying `n_clicks`
+    were redrawn along with the face, a click landing while that attribution was still
+    being computed would be discarded with the component that raised it -- invisible on a
+    laptop, where the attribution wins the race, and reliable on a small host."""
+    import sys
+
+    from spp2422_demo.app import app  # noqa: F401  -- importing registers the pages
+
+    slots = {repr(card_id(card)) for card in CARDS}
+    assert slots <= _ids(sys.modules["pages.status"].layout()), "slots are not mounted"
+
+    faces = _ids(board(load_run(), FIRST_STROKE, TOLERANCE))
+    assert not (slots & faces), "a card face carries the id that takes the click"
 
 
 def test_a_detail_window_renders_with_operator_reports():
