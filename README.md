@@ -23,8 +23,9 @@ pages that take one model apart at a time sit behind that page and the **Model d
   far off-centre the strip was fed, from the slope of the force plateau alone. Crossing the
   alarm limit stops the stream and raises a warning.
 
-See [docs/PROJECT.md](docs/PROJECT.md) for the data, the models, what the accuracies mean and the
-research behind it, and [docs/OPERATIONS.md](docs/OPERATIONS.md) for deploying it and CI.
+See [docs/project.md](docs/project.md) for the data, the models, what the accuracies mean and the
+research behind it, [docs/operations.md](docs/operations.md) for deploying it and CI, and
+[docs/styleguide.md](docs/styleguide.md) for writing conventions.
 
 ## Run it
 
@@ -50,21 +51,23 @@ even the first start is instant. Force a rebuild with `uv run spp2422-demo prepa
 
 ```
 src/spp2422_demo/
-  app.py             Dash shell: top bar, navigation, page container
-  data.py            loads curves.npz, mu terciles, the train/test split
-  features.py        handcrafted shape descriptors
-  models.py          the four classifiers behind the held-out-stroke split
-  calibration.py     GP calibration: placing the withheld wear state on the sweep
-  explain.py         occlusion sensitivity and integrated gradients
-  artifacts.py       trains, calibrates, caches to data/models/
-  station_view.py    the wear page, shared by both forming stages
-  pages/             one module per route, discovered by Dash
-  components/        figures, cards, the alert
-  assets/            stylesheet and the CAD animation of the die
-scripts/extract_data.py       rebuilds data/curves.npz from the research pipeline
-compose.yaml                  one-command start on a machine that only has Docker
-docs/PROJECT.md               the data, models, evaluation and background
-docs/OPERATIONS.md            deployment options and CI
+  app.py                  Dash shell: top bar, navigation, page container
+  data.py                 loads curves.npz, mu terciles, the train/test split
+  features.py             handcrafted shape descriptors
+  models.py               the four classifiers behind the held-out-stroke split
+  calibration.py          GP calibration: placing the withheld wear state on the sweep
+  explain.py              occlusion sensitivity and integrated gradients
+  artifacts.py            trains, calibrates, caches to data/models/
+  station_view.py         the wear page, shared by both forming stages
+  pages/                  one module per route, discovered by Dash
+  components/             figures, cards, the alert
+  assets/                 stylesheet and the CAD animation of the die
+scripts/extract_data.py   rebuilds data/curves.npz from the research pipeline
+compose.yaml              one-command start on a machine that only has Docker
+docs/
+  project.md              the data, models, evaluation and background
+  operations.md           deployment options and CI
+  styleguide.md           writing conventions for this repo's docs
 ```
 
 Development: `uv run ruff check .`, `uv run ruff format .`, `uv run pytest`.
