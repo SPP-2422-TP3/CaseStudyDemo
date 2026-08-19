@@ -29,6 +29,7 @@ from spp2422_demo.components.status_cards import (
     card_slots,
     detail,
 )
+from spp2422_demo.data import STATIONS
 from spp2422_demo.feedback import (
     FEEDBACK_STROKES,
     ISSUES,
@@ -37,7 +38,14 @@ from spp2422_demo.feedback import (
     report,
     to_store,
 )
-from spp2422_demo.health import DEFAULT_TOLERANCE_MM
+from spp2422_demo.health import (
+    CRITICAL,
+    DEFAULT_TOLERANCE_MM,
+    ICON,
+    MACHINE_HEADLINE,
+    Signal,
+    machine_state,
+)
 from spp2422_demo.scenario import (
     DEFAULT_SCENARIO,
     N_STROKES,
@@ -196,6 +204,85 @@ def _feedback_form() -> dbc.Modal:
     )
 
 
+def _stop_alert() -> dbc.Modal:
+    """The popup that interrupts the operator when the board's verdict turns critical.
+
+    Shaped like `wear_alert` and `excentricity_alert` -- an alert head, a body a callback
+    fills in, three buttons -- but its buttons are the board's own next moves rather than
+    a per-station explanation: see where the board can go from a stopped press.
+    """
+    return dbc.Modal(
+        [
+            html.Div(
+                dbc.Row(
+                    [
+                        dbc.Col(html.Div(ICON[CRITICAL], className="alert-icon"), width="auto"),
+                        dbc.Col(
+                            [
+                                html.Div(MACHINE_HEADLINE[CRITICAL], className="alert-title"),
+                                html.Div("Progressive die · press cell", className="alert-sub"),
+                            ]
+                        ),
+                    ],
+                    align="center",
+                ),
+                className="alert-head",
+            ),
+            dbc.ModalBody(html.Div(id="status-stop-body")),
+            dbc.ModalFooter(
+                [
+                    dbc.Button(
+                        "View details", id="status-stop-view", color="secondary", outline=True
+                    ),
+                    dbc.Button(
+                        "Report bad part", id="status-stop-report", color="secondary", outline=True
+                    ),
+                    dbc.Button("Acknowledge", id="status-stop-ack", color="dark"),
+                ]
+            ),
+        ],
+        id="status-stop-modal",
+        is_open=False,
+        centered=True,
+        size="lg",
+        className="alert-modal",
+    )
+
+
+def _stop_body(critical: list[Signal], stroke: int) -> html.Div:
+    """What tripped the stop, read the same way the machine card's own detail window reads it."""
+    return html.Div(
+        [
+            html.Div(
+                [
+                    html.Div(
+                        [
+                            html.Span(ICON[signal.state], className="signal-icon"),
+                            html.Span(signal.name, className="signal-name"),
+                            html.Span(signal.value, className="signal-value"),
+                            html.Div(signal.detail, className="signal-detail"),
+                        ],
+                        className=f"signal signal-{signal.state}",
+                    )
+                    for signal in critical
+                ],
+                className="signal-list",
+            ),
+            html.Div(f"Stroke {stroke + 1}", className="section-note mt-2"),
+        ]
+    )
+
+
+def _stop_card(critical: list[Signal]) -> str:
+    """Which detail view `View details` opens: the one signal that tripped it, if there is
+    exactly one -- otherwise there is no single view to send the operator to, so it opens
+    strip alignment.
+    """
+    if len(critical) == 1 and critical[0].key in STATIONS:
+        return WEAR
+    return ALIGNMENT
+
+
 def _details_link() -> html.Div:
     """The way off the board.
 
@@ -270,7 +357,9 @@ def layout(**_kwargs):
             dcc.Store(id="status-auto-stroke", data=FIRST_STROKE),
             dcc.Store(id="status-reports", data=[]),
             dcc.Store(id="status-feedback-anchor"),
+            dcc.Store(id="status-last-machine-state"),
             _feedback_form(),
+            _stop_alert(),
             dbc.Modal(
                 [
                     dbc.ModalHeader(dbc.ModalTitle(id="status-modal-title")),
@@ -325,14 +414,20 @@ def _restart(_scenario_key):
     Output("status-feedback-anchor", "data"),
     Output("status-feedback-when", "children"),
     Output("status-feedback-note", "value"),
+    Output("status-stop-modal", "is_open", allow_duplicate=True),
     Input("status-report", "n_clicks"),
+    Input("status-stop-report", "n_clicks"),
     State("status-stroke", "value"),
     prevent_initial_call=True,
 )
-def _open_feedback(_clicks, stroke):
-    """Open the form and pin it to the stroke on screen now, not when it is submitted."""
+def _open_feedback(_clicks, _stop_clicks, stroke):
+    """Open the form and pin it to the stroke on screen now, not when it is submitted.
+
+    Reachable from the board's own report button and from the stop popup's; either way the
+    popup behind it closes.
+    """
     when = f"Reporting from stroke {stroke + 1}, the last stroke the board has shown."
-    return True, stroke, when, ""
+    return True, stroke, when, "", False
 
 
 @callback(
@@ -454,3 +549,59 @@ def _open_detail(clicks, stroke, tolerance, stored, scenario_key):
         ctx.triggered_id["card"], load_run(scenario_key), stroke, tolerance, from_store(stored)
     )
     return True, title, body
+
+
+@callback(
+    Output("status-stop-modal", "is_open"),
+    Output("status-stop-body", "children"),
+    Output("status-interval", "disabled", allow_duplicate=True),
+    Output("status-play", "children", allow_duplicate=True),
+    Output("status-live-dot", "className", allow_duplicate=True),
+    Output("status-last-machine-state", "data"),
+    Input("status-stroke", "value"),
+    Input("status-tolerance", "value"),
+    Input("status-scenario", "value"),
+    State("status-last-machine-state", "data"),
+    prevent_initial_call=True,
+)
+def _raise_stop_alert(stroke, tolerance, scenario_key, last_state):
+    """Interrupt the operator on the transition into a stopped machine, not on every stroke
+    that stays there -- the same rule `wear_alert` applies per station, read here off the
+    board's combined verdict instead of one station's level.
+    """
+    run = load_run(scenario_key)
+    state, current_signals = machine_state(run, stroke, tolerance)
+    if state == CRITICAL and last_state != CRITICAL:
+        critical = [signal for signal in current_signals if signal.state == CRITICAL]
+        return True, _stop_body(critical, stroke), True, "Run", "hmi-dot", state
+    return no_update, no_update, no_update, no_update, no_update, state
+
+
+@callback(
+    Output("status-modal", "is_open", allow_duplicate=True),
+    Output("status-modal-title", "children", allow_duplicate=True),
+    Output("status-modal-body", "children", allow_duplicate=True),
+    Output("status-stop-modal", "is_open", allow_duplicate=True),
+    Input("status-stop-view", "n_clicks"),
+    State("status-stroke", "value"),
+    State("status-tolerance", "value"),
+    State("status-reports", "data"),
+    State("status-scenario", "value"),
+    prevent_initial_call=True,
+)
+def _view_stop_cause(_clicks, stroke, tolerance, stored, scenario_key):
+    """Send `View details` to the card that explains the stop; see `_stop_card`."""
+    run = load_run(scenario_key)
+    _state, current_signals = machine_state(run, stroke, tolerance)
+    critical = [signal for signal in current_signals if signal.state == CRITICAL]
+    title, body = detail(_stop_card(critical), run, stroke, tolerance, from_store(stored))
+    return True, title, body, False
+
+
+@callback(
+    Output("status-stop-modal", "is_open", allow_duplicate=True),
+    Input("status-stop-ack", "n_clicks"),
+    prevent_initial_call=True,
+)
+def _ack_stop(_clicks):
+    return False
