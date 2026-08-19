@@ -267,6 +267,7 @@ def layout(**_kwargs):
             _feedback_bar(),
             _controls(),
             dcc.Interval(id="status-interval", interval=STREAM_INTERVAL_MS, disabled=True),
+            dcc.Store(id="status-auto-stroke", data=FIRST_STROKE),
             dcc.Store(id="status-reports", data=[]),
             dcc.Store(id="status-feedback-anchor"),
             _feedback_form(),
@@ -303,6 +304,7 @@ def _board(stroke, tolerance, scenario_key):
 
 @callback(
     Output("status-stroke", "value", allow_duplicate=True),
+    Output("status-auto-stroke", "data", allow_duplicate=True),
     Output("status-reports", "data", allow_duplicate=True),
     Input("status-scenario", "value"),
     prevent_initial_call=True,
@@ -312,9 +314,10 @@ def _restart(_scenario_key):
 
     The reports are pinned to stroke numbers, and stroke 200 of one run has nothing to do
     with stroke 200 of the other. Carrying them across would put an operator's verdict
-    against strokes they never saw.
+    against strokes they never saw. `status-auto-stroke` is rewound in the same response so
+    a run in progress does not read as a manual jump and pause itself; see `_advance`.
     """
-    return FIRST_STROKE, []
+    return FIRST_STROKE, FIRST_STROKE, []
 
 
 @callback(
@@ -381,12 +384,39 @@ def _reports_strip(stored):
 
 @callback(
     Output("status-stroke", "value"),
+    Output("status-auto-stroke", "data"),
     Input("status-interval", "n_intervals"),
     State("status-stroke", "value"),
     prevent_initial_call=True,
 )
 def _advance(_ticks, stroke):
-    return FIRST_STROKE if stroke >= N_STROKES - 1 else stroke + 1
+    """Step the run forward. The value is echoed into `status-auto-stroke` in the same
+    response, so `_pause_on_manual_stroke` below can tell its own writes apart from a hand
+    on the slider."""
+    next_stroke = FIRST_STROKE if stroke >= N_STROKES - 1 else stroke + 1
+    return next_stroke, next_stroke
+
+
+@callback(
+    Output("status-interval", "disabled", allow_duplicate=True),
+    Output("status-play", "children", allow_duplicate=True),
+    Output("status-live-dot", "className", allow_duplicate=True),
+    Input("status-stroke", "value"),
+    State("status-auto-stroke", "data"),
+    State("status-interval", "disabled"),
+    prevent_initial_call=True,
+)
+def _pause_on_manual_stroke(stroke, auto_stroke, disabled):
+    """A hand on the slider always wins: stop the run rather than race it for the value.
+
+    `_advance` writes the slider from a `State` read that can go stale in flight, so a tick
+    landing just after a manual jump can silently snap the slider back. Stopping the run the
+    moment the slider shows something other than its own last write closes that window
+    instead of trying to win the race.
+    """
+    if disabled or stroke == auto_stroke:
+        return no_update, no_update, no_update
+    return True, "Run", "hmi-dot"
 
 
 @callback(

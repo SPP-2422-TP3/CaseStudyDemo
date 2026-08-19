@@ -177,6 +177,7 @@ def layout(station_key: str) -> html.Div:
                 id=_id(station_key, "stream-interval"), interval=STREAM_INTERVAL_MS, disabled=True
             ),
             dcc.Store(id=_id(station_key, "last-level"), data=None),
+            dcc.Store(id=_id(station_key, "auto-stroke"), data=0),
         ]
     )
 
@@ -335,13 +336,41 @@ def describe_model(model_key):
 
 @callback(
     Output(_id(MATCH, "stroke-slider"), "value"),
+    Output(_id(MATCH, "auto-stroke"), "data"),
     Input(_id(MATCH, "stream-interval"), "n_intervals"),
     State(_id(MATCH, "stroke-slider"), "value"),
     prevent_initial_call=True,
 )
 def advance_stream(_, stroke):
-    """Walk the run in production order, wrapping around at the end."""
-    return ((stroke or 0) + STREAM_STEP) % 500
+    """Walk the run in production order, wrapping around at the end.
+
+    The value it lands on is echoed into `auto-stroke` in the same response, so
+    `pause_on_manual_stroke` below can tell its own writes apart from a hand on the slider.
+    """
+    next_stroke = ((stroke or 0) + STREAM_STEP) % 500
+    return next_stroke, next_stroke
+
+
+@callback(
+    Output(_id(MATCH, "stream-interval"), "disabled", allow_duplicate=True),
+    Output(_id(MATCH, "stream-toggle"), "children", allow_duplicate=True),
+    Output(_id(MATCH, "stream-toggle"), "color", allow_duplicate=True),
+    Input(_id(MATCH, "stroke-slider"), "value"),
+    State(_id(MATCH, "auto-stroke"), "data"),
+    State(_id(MATCH, "stream-interval"), "disabled"),
+    prevent_initial_call=True,
+)
+def pause_on_manual_stroke(stroke, auto_stroke, disabled):
+    """A hand on the slider always wins: stop the stream rather than race it for the value.
+
+    `advance_stream` writes the slider from a `State` read that can go stale in flight, so
+    a tick landing just after a manual move can silently snap the slider back. Stopping the
+    stream the moment the slider shows something other than its own last write closes that
+    window instead of trying to win the race.
+    """
+    if disabled or stroke == auto_stroke:
+        return no_update, no_update, no_update
+    return True, "▶ Stream", "primary"
 
 
 @callback(

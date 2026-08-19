@@ -218,6 +218,7 @@ def layout(**_kwargs):
             dcc.Interval(id="exc-interval", interval=STREAM_INTERVAL_MS, disabled=True),
             dcc.Store(id="exc-current"),
             dcc.Store(id="exc-alarm-latched", data=False),
+            dcc.Store(id="exc-auto-stroke", data={"stroke": 1, "series": INFEED_LEVELS[0]}),
         ]
     )
 
@@ -391,6 +392,7 @@ def update_view(level, stroke, threshold):
 @callback(
     Output("exc-stroke", "value"),
     Output("exc-series", "value"),
+    Output("exc-auto-stroke", "data"),
     Input("exc-interval", "n_intervals"),
     State("exc-stroke", "value"),
     State("exc-series", "value"),
@@ -400,12 +402,17 @@ def advance_stream(_, stroke, level):
     """Walk the strokes in production order, rolling on into the next infeed series.
 
     Running the series in order is what makes the stream worth watching: the misalignment
-    climbs as it goes, so the limit is crossed on the way rather than being set up.
+    climbs as it goes, so the limit is crossed on the way rather than being set up. The
+    landing spot is echoed into `exc-auto-stroke` in the same response, so
+    `pause_on_manual_stroke` below can tell its own writes apart from a hand on the
+    controls.
     """
     if stroke < STROKES_PER_SERIES:
-        return stroke + 1, no_update
+        next_stroke = stroke + 1
+        return next_stroke, no_update, {"stroke": next_stroke, "series": level}
     position = INFEED_LEVELS.index(level)
-    return 1, INFEED_LEVELS[(position + 1) % len(INFEED_LEVELS)]
+    next_level = INFEED_LEVELS[(position + 1) % len(INFEED_LEVELS)]
+    return 1, next_level, {"stroke": 1, "series": next_level}
 
 
 @callback(
@@ -419,6 +426,30 @@ def advance_stream(_, stroke, level):
 def toggle_stream(_, disabled):
     running = disabled  # the click flips it
     return (not running, "⏸ Pause" if running else "▶ Stream", "warning" if running else "primary")
+
+
+@callback(
+    Output("exc-interval", "disabled", allow_duplicate=True),
+    Output("exc-stream-toggle", "children", allow_duplicate=True),
+    Output("exc-stream-toggle", "color", allow_duplicate=True),
+    Input("exc-stroke", "value"),
+    Input("exc-series", "value"),
+    State("exc-auto-stroke", "data"),
+    State("exc-interval", "disabled"),
+    prevent_initial_call=True,
+)
+def pause_on_manual_stroke(stroke, level, auto, disabled):
+    """A hand on the stroke slider or the series picker always wins: stop the stream rather
+    than race it for the value.
+
+    `advance_stream` writes these from a `State` read that can go stale in flight, so a tick
+    landing just after a manual move can silently snap the controls back. Stopping the
+    stream the moment either control shows something other than its own last write closes
+    that window instead of trying to win the race.
+    """
+    if disabled or auto is None or (stroke == auto["stroke"] and level == auto["series"]):
+        return no_update, no_update, no_update
+    return True, "▶ Stream", "primary"
 
 
 @callback(
