@@ -106,18 +106,18 @@ uv run python scripts/extract_data.py
 
 ### Strip misalignment — `data/excentricity.npz`
 
-A separate measurement campaign, behind the **Excentricity** page. `data/excentricity.npz`
+A separate measurement campaign, behind the board's Strip Alignment card. `data/excentricity.npz`
 (1.2 MB, committed) holds 343 measured strokes: seven series of 49, one per tool infeed from
 60.00 to 60.30 mm in 0.05 mm steps, resampled to 912 samples and divided by the median of the
-per-stroke maxima. `force_scale` carries the kN the normalization divided out, so the page can
+per-stroke maxima. `force_scale` carries the kN the normalization divided out, so the card can
 plot physical force. Only the axial punch force of the deep-drawing module
 (`K2_Ch2_Mod2AI4`) is used; the other eight force channels and four accelerometers are
-recorded but unmodelled. No simulated curves appear on this page.
+recorded but unmodelled. No simulated curves appear here.
 
 Labels are **hundredths of a millimetre of overfeed** past the 60 mm reference, which is what
 the source folder names encode. Three progressive stages precede deep drawing, so the offset
-accumulates roughly threefold: 0.30 mm of overfeed puts the cup ~0.9 mm off-centre. The page
-converts for display; nothing shows a raw label.
+accumulates roughly threefold: 0.30 mm of overfeed puts the cup ~0.9 mm off-centre. The
+dashboard converts for display; nothing shows a raw label.
 
 Rebuilding it needs the raw capture in `_excentricity_data/real_numisheet/` (~926 MB,
 git-ignored — ask for it, it is not public):

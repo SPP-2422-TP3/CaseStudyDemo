@@ -48,8 +48,8 @@ MACHINE_HEADLINE = {
 WEAR_STATE = {1: GOOD, 2: WATCH, 3: CRITICAL}
 
 # Default tolerance on strip misalignment at the cup, in mm. Chosen for the demo -- no
-# scrap tolerance was published with the trials -- and adjustable on the page for that
-# reason. The watch band opens at three quarters of it, as on the Excentricity page.
+# scrap tolerance was published with the trials -- and adjustable on the board for that
+# reason. The watch band opens at three quarters of it.
 DEFAULT_TOLERANCE_MM = 0.60
 WATCH_FRACTION = 0.75
 
@@ -115,8 +115,8 @@ def alignment_signal(run: Run, stroke: int, tolerance_mm: float) -> Signal:
     """Strip alignment, read off the running mean rather than a single stroke.
 
     A single stroke carries several hundredths of a millimetre of scatter -- enough to
-    cross a tolerance on its own -- so the alarm watches the trailing mean, which is the
-    same choice the Excentricity page defends at length.
+    cross a tolerance on its own -- so the alarm watches the trailing mean rather than a
+    single reading.
     """
     value = run.smoothed_alignment(stroke)
     state = alignment_state(value, tolerance_mm)

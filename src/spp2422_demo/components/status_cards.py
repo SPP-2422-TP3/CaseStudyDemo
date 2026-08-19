@@ -13,7 +13,7 @@ from dash import dcc, html
 
 from ..artifacts import TrainedStation, load_artifacts
 from ..data import LEVELS, STATIONS
-from ..excentricity import excentricity_mm, load_excentricity
+from ..excentricity import INFEED_LEVELS, load_excentricity
 from ..explain import explain
 from ..features import curve_features
 from ..feedback import FEEDBACK_STROKES, Report
@@ -31,9 +31,9 @@ from ..models import CnnModel, FeatureModel, HybridModel
 from ..scenario import ALIGNMENT_WINDOW, WEAR_WINDOW, Run
 from ..theme import LEVEL_NAMES
 from .curve_figure import attribution_figure, stroke_figure
-from .excentricity_figure import plateau_figure
+from .excentricity_figure import feature_space_figure, indicator_figure, plateau_figure, status_of
 from .excentricity_figure import stroke_figure as excentricity_stroke_figure
-from .layout import panel, percent
+from .layout import caveat, panel, percent, stat_card
 from .status_figures import (
     LOG_ROWS,
     alignment_dots,
@@ -336,6 +336,69 @@ def _about_model(trained: TrainedStation, model_key: str) -> html.Div:
     )
 
 
+def _snapped(data) -> np.ndarray:
+    """Each alignment prediction rounded to the nearest infeed level actually run on the press."""
+    levels = np.array(INFEED_LEVELS)
+    return levels[np.abs(data.predicted[:, None] - levels[None, :]).argmin(axis=1)]
+
+
+def _exact_level_rate(data) -> float:
+    return float((_snapped(data) == data.labels).mean())
+
+
+def _near_level_rate(data) -> float:
+    return float((np.abs(_snapped(data) - data.labels) <= 5).mean())
+
+
+def _about_alignment(data) -> html.Div:
+    """The misalignment forest's own reads/trained-on/gets-right panel -- the same shape
+    `_about_model` gives the wear stations' models."""
+    return html.Div(
+        [
+            html.Div("Random forest on two plateau features", style={"fontWeight": 600}),
+            html.Div(
+                "20 trees, depth 4, following Moske et al. (NUMISHEET 2025).",
+                className="section-note mb-3",
+            ),
+            dbc.Row(
+                [
+                    _about_item(
+                        "Reads",
+                        "Two numbers, and nothing else: the slope and the height of a straight "
+                        "line fitted across the force plateau. As the blank goes off-centre the "
+                        "plateau tilts downward and peak force falls, and that is the whole "
+                        "signal — no spectrum, no shape descriptors, no second sensor.",
+                    ),
+                    _about_item(
+                        "Trained on",
+                        f"{len(data.curves)} strokes: {len(INFEED_LEVELS)} measured series of "
+                        "49, one per infeed level. The first stroke of each series is dropped "
+                        "as a warm-up transient.",
+                    ),
+                    _about_item(
+                        "Gets right",
+                        html.Div(
+                            f"{data.mae_mm * 1000:.1f} µm mean absolute error "
+                            f"(± {data.mae_std_mm * 1000:.1f}) on held-out strokes, in infeed "
+                            "terms. That average hides a tail: a single stroke lands on the "
+                            f"exact infeed level {_exact_level_rate(data):.0%} of the time and "
+                            f"within one level {_near_level_rate(data):.0%} of the time, so the "
+                            "stroke-by-stroke number is worth watching as a trend rather than "
+                            "read one stroke at a time.",
+                        ),
+                        html.Div(
+                            "Predictions here are out-of-fold: every stroke shown is predicted "
+                            "by a forest that did not train on it.",
+                            className="mt-1",
+                        ),
+                    ),
+                ],
+                className="g-4",
+            ),
+        ]
+    )
+
+
 def _station_stroke(run: Run, station_key: str, stroke: int) -> html.Div:
     """One stroke at one station, read the way the deep drawing and ironing explorers used
     to read it: the same force curve, the same time-resolved attribution, the same
@@ -373,29 +436,93 @@ def _station_stroke(run: Run, station_key: str, stroke: int) -> html.Div:
     )
 
 
-def _alignment_stroke(run: Run, stroke: int) -> html.Div:
-    """One stroke's punch force and the line fitted across its plateau.
-
-    The misalignment model reads two numbers off this window and nothing else, so the
-    fitted line *is* the explanation -- the same pair of views the Excentricity page uses.
+def _alignment_stroke(run: Run, stroke: int, tolerance_mm: float) -> html.Div:
+    """One stroke's punch force and the two plateau features the forest reads off it, at
+    the three zoom levels and with the prediction readout the Excentricity page gave a
+    whole control panel to.
     """
     data = load_excentricity()
     index = run.alignment_rows[stroke]
+    predicted = float(run.alignment_mm[stroke])
+    running = run.smoothed_alignment(stroke)
+    true = float(run.alignment_true_mm[stroke])
+    color, state, icon = status_of(predicted, tolerance_mm)
+    window_n = min(ALIGNMENT_WINDOW, stroke + 1)
+
+    prediction = html.Div(
+        [
+            html.Div(
+                f"{predicted:.2f} mm",
+                style={"fontSize": "2.1rem", "fontWeight": 600, "color": color, "lineHeight": 1.1},
+            ),
+            html.Div("off-centre at the cup", className="section-note"),
+            html.Div(
+                f"{icon}  {state}", style={"color": color, "fontWeight": 600}, className="mt-2"
+            ),
+            html.Div(
+                f"Last {window_n} strokes averaged: {running:.2f} mm · measured {true:.2f} mm",
+                className="section-note mt-1",
+            ),
+            _graph(indicator_figure(predicted, running, true, tolerance_mm)),
+            dbc.Row(
+                [
+                    dbc.Col(
+                        stat_card(
+                            "Plateau Slope",
+                            f"{data.slope_kn_per_s(index):+.2f}",
+                            "kN/s — tilts down as the blank goes off-centre",
+                        ),
+                        width=6,
+                    ),
+                    dbc.Col(
+                        stat_card(
+                            "Plateau Force",
+                            f"{data.intercept_kn(index):.2f}",
+                            "kN at the start of the window — falls with misalignment",
+                        ),
+                        width=6,
+                    ),
+                ],
+                className="g-2 mt-2 alignment-stats",
+            ),
+        ]
+    )
+
     return html.Div(
         [
             html.Div(f"Stroke {stroke + 1}", className="card-title mt-3"),
             dbc.Row(
                 [
-                    dbc.Col(_graph(excentricity_stroke_figure(data, index)), lg=6),
-                    dbc.Col(_graph(plateau_figure(data, index)), lg=6),
+                    dbc.Col(_graph(excentricity_stroke_figure(data, index)), lg=8),
+                    dbc.Col(prediction, lg=4),
                 ],
                 className="g-3",
             ),
+            dbc.Row(
+                [
+                    dbc.Col(_graph(plateau_figure(data, index)), lg=6),
+                    dbc.Col(_graph(feature_space_figure(data, index)), lg=6),
+                ],
+                className="g-3 mt-0",
+            ),
+            html.Div(panel("About This Model", _about_alignment(data)), className="mt-4"),
             html.Div(
-                f"This stroke's plateau tilts at {data.slope_kn_per_s(index):+.2f} kN/s, which "
-                f"the forest reads as {excentricity_mm(data.predicted[index]):.2f} mm off "
-                f"centre. It was actually fed at {run.alignment_true_mm[stroke]:.2f} mm.",
-                className="section-note",
+                caveat(
+                    [
+                        html.Strong("One production run per infeed level. "),
+                        html.Span(
+                            "Each of the seven series is a single uninterrupted run of 49 "
+                            "strokes, so strokes that share a tool temperature, a lubrication "
+                            "state and one setup end up on both sides of the train/test split. "
+                            "The error above therefore measures recognising a stroke from a "
+                            "run the model has already seen — holding a whole run out is "
+                            "impossible here, because that would remove its infeed level from "
+                            "training entirely. Repeated runs per level are what an honest "
+                            "generalisation estimate would need."
+                        ),
+                    ]
+                ),
+                className="mt-3",
             ),
         ]
     )
@@ -498,7 +625,7 @@ def detail(
                     "single stroke's scatter would otherwise trip on its own.",
                     className="section-note mt-1 mb-3",
                 ),
-                _alignment_stroke(run, stroke),
+                _alignment_stroke(run, stroke, tolerance_mm),
                 log,
             ]
         )

@@ -92,9 +92,10 @@ GROUPS: list[tuple[str, str, list[Paper]]] = [
                 "J. Moske, M. Schumann, A. Wüst, K. Kersting, P. Groche",
                 "Journal of Physics: Conference Series 3104, 012058 — NUMISHEET 2025",
                 "10.1088/1742-6596/3104/1/012058",
-                "The method behind the Excentricity page: finite element simulation links how "
-                "the strip is positioned to the defects that follow from it, and the plateau "
-                "slope of the punch force is what carries that position back out.",
+                "The method behind reading strip alignment on the status board: finite "
+                "element simulation links how the strip is positioned to the defects that "
+                "follow from it, and the plateau slope of the punch force is what carries "
+                "that position back out.",
             ),
         ],
     ),
@@ -358,10 +359,7 @@ def _deeper() -> dbc.Card:
             ],
             className="page-links",
         ),
-        note=(
-            "Each of these takes a single question apart: the withheld wear state, and the "
-            "strip alignment."
-        ),
+        note="Takes apart the harder question left off the board: the withheld wear state.",
     )
 
 

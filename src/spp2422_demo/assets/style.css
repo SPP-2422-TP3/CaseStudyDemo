@@ -702,6 +702,11 @@ body {
 
 .alignment-head .stat-value { font-size: 2.6rem; line-height: 1; }
 
+/* The plateau slope/force readout in the alignment detail view: two stat cards side by
+   side in a column already crowded with the prediction readout above them. */
+.alignment-stats .card-body { padding: 0.65rem 0.9rem; }
+.alignment-stats .stat-value { font-size: 1.25rem; }
+
 .card-model {
   color: var(--muted);
   font-size: 0.76rem;

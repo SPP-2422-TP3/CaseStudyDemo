@@ -14,13 +14,11 @@ about the condition of the tools.
 The landing page is the **Status** board, with **About & Help** — what the data is, what each
 model is worth on it, how to read the dashboard, and the papers behind it — one click away. Its
 settings box picks which of the four trained models reads each station, and the board's Tool
-Wear card opens into that model's own technical panel and the prediction's explanation. The
-pages that take a further question apart on their own sit behind the **Model detail** menu:
+Wear and Strip Alignment cards each open into their own model's technical panel and the
+prediction's explanation. One page takes a further question apart on its own, behind the
+**Model detail** menu:
 
 - **Wear Threshold** — the state nobody can label, located by anchoring on the simulated sweep.
-- **Excentricity** — step through measured strokes of the deep-drawing station and read how
-  far off-centre the strip was fed, from the slope of the force plateau alone. Crossing the
-  alarm limit stops the stream and raises a warning.
 
 See [docs/project.md](docs/project.md) for the data, the models, what the accuracies mean and the
 research behind it, [docs/operations.md](docs/operations.md) for deploying it and CI, and
@@ -58,7 +56,7 @@ src/spp2422_demo/
   explain.py              occlusion sensitivity and integrated gradients
   artifacts.py            trains, calibrates, caches to data/models/
   pages/                  one module per route, discovered by Dash
-  components/             figures, cards, the alert
+  components/             figures and cards
   assets/                 stylesheet and the CAD animation of the die
 scripts/extract_data.py   rebuilds data/curves.npz from the research pipeline
 compose.yaml              one-command start on a machine that only has Docker

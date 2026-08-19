@@ -227,9 +227,9 @@ def _feedback_form() -> dbc.Modal:
 def _stop_alert() -> dbc.Modal:
     """The popup that interrupts the operator when the board's verdict turns critical.
 
-    Shaped like `excentricity_alert` -- an alert head, a body a callback fills in, three
-    buttons -- but its buttons are the board's own next moves rather than a per-station
-    explanation: see where the board can go from a stopped press.
+    An alert head, a body a callback fills in, three buttons -- but the buttons are the
+    board's own next moves rather than a per-station explanation: see where the board can
+    go from a stopped press.
     """
     return dbc.Modal(
         [
@@ -270,10 +270,23 @@ def _stop_alert() -> dbc.Modal:
 
 
 def _signal_detail(signal: Signal, run: Run, stroke: int) -> str:
-    """The signal's own detail line, with the model's confidence appended for a wear signal."""
-    if signal.key not in STATIONS:
-        return signal.detail
-    return f"{signal.detail} · {run.confidence(signal.key, stroke):.0%} confidence"
+    """The signal's own detail line, with extra context appended per signal kind."""
+    if signal.key in STATIONS:
+        return f"{signal.detail} · {run.confidence(signal.key, stroke):.0%} confidence"
+    if signal.key == ALIGNMENT:
+        return f"{signal.detail} · measured {run.alignment_true_mm[stroke]:.2f} mm at the cup"
+    return signal.detail
+
+
+# Practical guidance for the cause that tripped the stop, ported from the old
+# `excentricity_alert` -- only alignment has an entry, since there was no wear-side
+# equivalent to carry over when `wear_alert` was retired.
+STOP_GUIDANCE = {
+    ALIGNMENT: (
+        "An off-centre blank draws one flange wide and thins the opposite wall. Check the "
+        "feed before continuing."
+    ),
+}
 
 
 def _stop_body(critical: list[Signal], stroke: int, run: Run) -> html.Div:
@@ -296,6 +309,11 @@ def _stop_body(critical: list[Signal], stroke: int, run: Run) -> html.Div:
                     for signal in critical
                 ],
                 className="signal-list",
+            ),
+            *(
+                html.Div(STOP_GUIDANCE[signal.key], className="section-note mt-2")
+                for signal in critical
+                if signal.key in STOP_GUIDANCE
             ),
             html.Div(f"Stroke {stroke + 1}", className="section-note mt-2"),
         ]
@@ -426,7 +444,7 @@ def layout(**_kwargs):
                     dbc.ModalBody(id="status-modal-body"),
                 ],
                 id="status-modal",
-                size="lg",
+                size="xl",
                 is_open=False,
                 scrollable=True,
             ),

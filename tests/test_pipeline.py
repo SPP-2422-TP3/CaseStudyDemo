@@ -151,14 +151,13 @@ def test_every_page_imports_and_has_a_layout():
         "/",
         "/details",
         "/wear-threshold",
-        "/excentricity",
     }
     for page in pages.values():
         assert callable(page["layout"])
         page["layout"]()
 
-    # The board and the page behind it are the two the visitor is steered to; the pages
-    # that argue about one model at a time sit behind the Model detail menu.
+    # The board and the page behind it are the two the visitor is steered to; the page
+    # that argues about one model at a time sits behind the Model detail menu.
     top_level = {page["path"] for page in pages.values() if page.get("top_level")}
     assert top_level == {"/", "/details"}
 
