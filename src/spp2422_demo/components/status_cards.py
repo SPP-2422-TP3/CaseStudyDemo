@@ -11,10 +11,11 @@ import dash_bootstrap_components as dbc
 import numpy as np
 from dash import dcc, html
 
-from ..artifacts import load_artifacts
+from ..artifacts import TrainedStation, load_artifacts
 from ..data import LEVELS, STATIONS
 from ..excentricity import excentricity_mm, load_excentricity
 from ..explain import explain
+from ..features import curve_features
 from ..feedback import FEEDBACK_STROKES, Report
 from ..health import (
     COLOR,
@@ -26,11 +27,13 @@ from ..health import (
     machine_state,
     worst,
 )
+from ..models import CnnModel, FeatureModel, HybridModel
 from ..scenario import ALIGNMENT_WINDOW, WEAR_WINDOW, Run
 from ..theme import LEVEL_NAMES
 from .curve_figure import attribution_figure, stroke_figure
 from .excentricity_figure import plateau_figure
 from .excentricity_figure import stroke_figure as excentricity_stroke_figure
+from .layout import panel, percent
 from .status_figures import (
     LOG_ROWS,
     alignment_dots,
@@ -252,19 +255,99 @@ def _graph(figure) -> dcc.Graph:
     return dcc.Graph(figure=figure, config={"displayModeBar": False})
 
 
-def _station_stroke(run: Run, station_key: str, stroke: int) -> html.Div:
-    """One stroke at one station, read the way the station pages read it.
+def _about_item(label: str, *children) -> dbc.Col:
+    return dbc.Col(
+        [html.Div(label, className="about-label"), html.Div(children, className="about-text")],
+        md=4,
+    )
 
-    The same force curve, the same time-resolved attribution, the same confidence split --
-    so an engineer who has seen the Deep Drawing page recognises this immediately, and the
-    board is not a second, unrelated account of the same model.
+
+def _about_model(trained: TrainedStation, model_key: str) -> html.Div:
+    """Plain-language card on the model currently selected: what it reads, what it was
+    trained on, how well it does, and how it is explained."""
+    data = trained.data
+    model = trained.models[model_key]
+    burst = data.peak_ref is not None
+
+    n_features = len(
+        curve_features(data.curves[0], burst=burst, peak_ref=data.peak_ref[0] if burst else None)
+    )
+    descriptors = f"{n_features} shape descriptors measured off the curve"
+    in_full = (
+        f"{descriptors} — how high the peak is and when it falls, how long the rise and the fall "
+        "take, how straight each segment runs and how steady the force is within each tenth of "
+        "the stroke"
+        + (", plus the burst as the tool takes contact and the dip that follows." if burst else ".")
+    )
+    raw = (
+        "The raw 500-sample curve, which the network reads for itself rather than being told what "
+        "to measure."
+    )
+    reads = {
+        FeatureModel: in_full,
+        CnnModel: raw,
+        HybridModel: f"{raw[:-1]}, and the {descriptors} alongside it — the two are joined "
+        "below a single head, so each can cover what the other misses.",
+    }[type(model)]
+
+    method = (
+        "Integrated gradients: the sensitivity of the prediction accumulated along a path from "
+        "the average stroke to this one."
+        if isinstance(model, CnnModel)
+        else "Occlusion sensitivity: every stretch of the stroke is flattened in turn and the "
+        "confidence it was carrying is recorded."
+    )
+
+    # What this number is not: every wear level appears in training here, so it measures
+    # monitoring an already characterised tool. The Wear Threshold page asks the harder
+    # question, about a state the model was never shown.
+    scope = (
+        "Every wear level appears in training, so this measures watching a tool that has "
+        "already been characterised — not recognising a state it has never been shown."
+    )
+
+    n_train = int(data.train_mask.sum())
+    return html.Div(
+        [
+            html.Div(model.name, style={"fontWeight": 600}),
+            html.Div(model.description.replace("--", "—"), className="section-note mb-3"),
+            dbc.Row(
+                [
+                    _about_item("Reads", reads),
+                    _about_item(
+                        "Trained on",
+                        f"{n_train:,}".replace(",", " ") + " strokes: the first 400 of each of "
+                        f"the {len(data.runs())} production runs, every wear combination "
+                        "included.",
+                    ),
+                    _about_item(
+                        "Gets right",
+                        html.Div(
+                            f"{percent(trained.accuracy[model_key])} of later strokes from "
+                            "those same runs."
+                        ),
+                        html.Div(scope, className="mt-1"),
+                    ),
+                ],
+                className="g-4",
+            ),
+            html.Div(method, className="section-note mt-3"),
+        ]
+    )
+
+
+def _station_stroke(run: Run, station_key: str, stroke: int) -> html.Div:
+    """One stroke at one station, read the way the deep drawing and ironing explorers used
+    to read it: the same force curve, the same time-resolved attribution, the same
+    confidence split, plus the model's own technical panel below.
     """
     trained = load_artifacts(station_key)
     data = trained.data
     row = run.rows[stroke]
     level = run.level(station_key, stroke)
+    model_key = run.model_key[station_key]
     peak_ref = data.peak_ref[row] if data.peak_ref is not None else None
-    attribution = explain(trained.models[trained.default_model], data.curves[row], peak_ref, level)
+    attribution = explain(trained.models[model_key], data.curves[row], peak_ref, level)
 
     return html.Div(
         [
@@ -285,6 +368,7 @@ def _station_stroke(run: Run, station_key: str, stroke: int) -> html.Div:
             _graph(attribution_figure(data, row, attribution)),
             html.Div(attribution.summary(STATIONS[station_key].name), className="section-note"),
             confidence_bars(run, station_key, stroke),
+            html.Div(panel("About This Model", _about_model(trained, model_key)), className="mt-4"),
         ]
     )
 

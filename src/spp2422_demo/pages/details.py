@@ -81,9 +81,10 @@ GROUPS: list[tuple[str, str, list[Paper]]] = [
                 "M. Schumann, J. Moske, F. Divo, A. Wüst, K. Kersting, P. Groche",
                 "Transactions of the Indian Institute of Metals 79(6), 2026",
                 "10.1007/s12666-026-03839-4",
-                "The measurement campaign behind the deep drawing and ironing pages: which "
-                "force signals carry enough information to tell the process state apart, and "
-                "how much is lost when the sensor sits away from the forming zone.",
+                "The measurement campaign behind how deep drawing and ironing wear is read on "
+                "the dashboard: which force signals carry enough information to tell the "
+                "process state apart, and how much is lost when the sensor sits away from the "
+                "forming zone.",
             ),
             Paper(
                 "Simulation Driven Modeling of Strip Misalignment: Enhancing Process Insight "
@@ -358,8 +359,8 @@ def _deeper() -> dbc.Card:
             className="page-links",
         ),
         note=(
-            "Each of these takes a single question apart: the per-stroke prediction and what "
-            "the model looked at, the withheld wear state, and the strip alignment."
+            "Each of these takes a single question apart: the withheld wear state, and the "
+            "strip alignment."
         ),
     )
 

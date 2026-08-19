@@ -20,6 +20,7 @@ import dash
 import dash_bootstrap_components as dbc
 from dash import ALL, Input, Output, State, callback, clientside_callback, ctx, dcc, html, no_update
 
+from spp2422_demo.artifacts import load_artifacts
 from spp2422_demo.components.status_cards import (
     ALIGNMENT,
     MACHINE,
@@ -51,6 +52,7 @@ from spp2422_demo.scenario import (
     N_STROKES,
     SCENARIOS,
     WEAR_WINDOW,
+    Run,
     load_run,
 )
 
@@ -84,8 +86,7 @@ def _scenario_picker() -> dbc.RadioItems:
     return dbc.RadioItems(
         id="status-scenario",
         options=[
-            {"label": f"Data {scenario.name}", "value": key}
-            for key, scenario in SCENARIOS.items()
+            {"label": f"Data {scenario.name}", "value": key} for key, scenario in SCENARIOS.items()
         ],
         value=DEFAULT_SCENARIO,
         className="btn-group hmi-choice",
@@ -224,9 +225,9 @@ def _feedback_form() -> dbc.Modal:
 def _stop_alert() -> dbc.Modal:
     """The popup that interrupts the operator when the board's verdict turns critical.
 
-    Shaped like `wear_alert` and `excentricity_alert` -- an alert head, a body a callback
-    fills in, three buttons -- but its buttons are the board's own next moves rather than
-    a per-station explanation: see where the board can go from a stopped press.
+    Shaped like `excentricity_alert` -- an alert head, a body a callback fills in, three
+    buttons -- but its buttons are the board's own next moves rather than a per-station
+    explanation: see where the board can go from a stopped press.
     """
     return dbc.Modal(
         [
@@ -266,7 +267,14 @@ def _stop_alert() -> dbc.Modal:
     )
 
 
-def _stop_body(critical: list[Signal], stroke: int) -> html.Div:
+def _signal_detail(signal: Signal, run: Run, stroke: int) -> str:
+    """The signal's own detail line, with the model's confidence appended for a wear signal."""
+    if signal.key not in STATIONS:
+        return signal.detail
+    return f"{signal.detail} · {run.confidence(signal.key, stroke):.0%} confidence"
+
+
+def _stop_body(critical: list[Signal], stroke: int, run: Run) -> html.Div:
     """What tripped the stop, read the same way the machine card's own detail window reads it."""
     return html.Div(
         [
@@ -277,7 +285,9 @@ def _stop_body(critical: list[Signal], stroke: int) -> html.Div:
                             html.Span(ICON[signal.state], className="signal-icon"),
                             html.Span(signal.name, className="signal-name"),
                             html.Span(signal.value, className="signal-value"),
-                            html.Div(signal.detail, className="signal-detail"),
+                            html.Div(
+                                _signal_detail(signal, run, stroke), className="signal-detail"
+                            ),
                         ],
                         className=f"signal signal-{signal.state}",
                     )
@@ -298,6 +308,28 @@ def _stop_card(critical: list[Signal]) -> str:
     if len(critical) == 1 and critical[0].key in STATIONS:
         return WEAR
     return ALIGNMENT
+
+
+def model_id(station_key: str) -> dict[str, str]:
+    return {"type": "status-model", "station": station_key}
+
+
+def _model_control(station_key: str) -> dbc.Col:
+    trained = load_artifacts(station_key)
+    return dbc.Col(
+        [
+            html.Div(f"{STATIONS[station_key].name} model", className="form-label"),
+            dcc.Dropdown(
+                id=model_id(station_key),
+                options=[
+                    {"label": trained.models[key].name, "value": key} for key in trained.models
+                ],
+                value=trained.default_model,
+                clearable=False,
+            ),
+        ],
+        lg=6,
+    )
 
 
 def _controls() -> html.Div:
@@ -343,6 +375,10 @@ def _controls() -> html.Div:
                 ],
                 className="g-4 align-items-end",
             ),
+            dbc.Row(
+                [_model_control(key) for key in STATIONS],
+                className="g-4 mt-1",
+            ),
         ],
         className="hmi-controls",
     )
@@ -386,10 +422,11 @@ def layout(**_kwargs):
     Input("status-stroke", "value"),
     Input("status-tolerance", "value"),
     Input("status-scenario", "value"),
+    *(Input(model_id(key), "value") for key in STATIONS),
 )
-def _board(stroke, tolerance, scenario_key):
+def _board(stroke, tolerance, scenario_key, dd_model, ir_model):
     """Redraw the three card faces. The slots holding them are never replaced."""
-    run = load_run(scenario_key)
+    run = load_run(scenario_key, (dd_model, ir_model))
     counter = html.Span(f"{stroke + 1:,}".replace(",", " "), className="hmi-counter-value")
     return (*board(run, stroke, tolerance), counter)
 
@@ -443,14 +480,28 @@ def _open_feedback(_clicks, _stop_clicks, stroke):
     State("status-feedback-note", "value"),
     State("status-scenario", "value"),
     State("status-tolerance", "value"),
+    *(State(model_id(key), "value") for key in STATIONS),
     prevent_initial_call=True,
 )
-def _record_report(_submit, _cancel, stored, anchor, window, issue, note, scenario_key, tolerance):
+def _record_report(
+    _submit,
+    _cancel,
+    stored,
+    anchor,
+    window,
+    issue,
+    note,
+    scenario_key,
+    tolerance,
+    dd_model,
+    ir_model,
+):
     """Take the operator's word for it and record what the monitor said at the time."""
     if ctx.triggered_id == "status-feedback-cancel" or anchor is None:
         return no_update, False
     reports = from_store(stored)
-    reports.append(report(load_run(scenario_key), anchor, window, issue, note or "", tolerance))
+    run = load_run(scenario_key, (dd_model, ir_model))
+    reports.append(report(run, anchor, window, issue, note or "", tolerance))
     return to_store(reports), False
 
 
@@ -537,17 +588,17 @@ def _render_run_controls(running):
     State("status-tolerance", "value"),
     State("status-reports", "data"),
     State("status-scenario", "value"),
+    *(State(model_id(key), "value") for key in STATIONS),
     prevent_initial_call=True,
 )
-def _open_detail(clicks, stroke, tolerance, stored, scenario_key):
+def _open_detail(clicks, stroke, tolerance, stored, scenario_key, dd_model, ir_model):
     # The slots are permanent, so a stroke no longer retriggers this -- but returning to
     # the board from another page mounts them afresh, and only a real click carries a
     # count on the card that triggered it.
     if not ctx.triggered_id or not any(clicks or []):
         return no_update, no_update, no_update
-    title, body = detail(
-        ctx.triggered_id["card"], load_run(scenario_key), stroke, tolerance, from_store(stored)
-    )
+    run = load_run(scenario_key, (dd_model, ir_model))
+    title, body = detail(ctx.triggered_id["card"], run, stroke, tolerance, from_store(stored))
     return True, title, body
 
 
@@ -559,19 +610,20 @@ def _open_detail(clicks, stroke, tolerance, stored, scenario_key):
     Input("status-stroke", "value"),
     Input("status-tolerance", "value"),
     Input("status-scenario", "value"),
+    *(Input(model_id(key), "value") for key in STATIONS),
     State("status-last-machine-state", "data"),
     prevent_initial_call=True,
 )
-def _raise_stop_alert(stroke, tolerance, scenario_key, last_state):
+def _raise_stop_alert(stroke, tolerance, scenario_key, dd_model, ir_model, last_state):
     """Interrupt the operator on the transition into a stopped machine, not on every stroke
-    that stays there -- the same rule `wear_alert` applies per station, read here off the
-    board's combined verdict instead of one station's level.
+    that stays there -- the same rule the per-station wear alert used to apply, read here
+    off the board's combined verdict instead of one station's level.
     """
-    run = load_run(scenario_key)
+    run = load_run(scenario_key, (dd_model, ir_model))
     state, current_signals = machine_state(run, stroke, tolerance)
     if state == CRITICAL and last_state != CRITICAL:
         critical = [signal for signal in current_signals if signal.state == CRITICAL]
-        return True, _stop_body(critical, stroke), False, state
+        return True, _stop_body(critical, stroke, run), False, state
     return no_update, no_update, no_update, state
 
 
@@ -585,11 +637,12 @@ def _raise_stop_alert(stroke, tolerance, scenario_key, last_state):
     State("status-tolerance", "value"),
     State("status-reports", "data"),
     State("status-scenario", "value"),
+    *(State(model_id(key), "value") for key in STATIONS),
     prevent_initial_call=True,
 )
-def _view_stop_cause(_clicks, stroke, tolerance, stored, scenario_key):
+def _view_stop_cause(_clicks, stroke, tolerance, stored, scenario_key, dd_model, ir_model):
     """Send `View details` to the card that explains the stop; see `_stop_card`."""
-    run = load_run(scenario_key)
+    run = load_run(scenario_key, (dd_model, ir_model))
     _state, current_signals = machine_state(run, stroke, tolerance)
     critical = [signal for signal in current_signals if signal.state == CRITICAL]
     title, body = detail(_stop_card(critical), run, stroke, tolerance, from_store(stored))

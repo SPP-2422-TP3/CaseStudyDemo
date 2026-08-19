@@ -193,31 +193,6 @@ def attribution_figure(data: StationData, index: int, attribution: Attribution) 
     return figure
 
 
-def confidence_figure(station_prefix: str, probabilities: np.ndarray) -> go.Figure:
-    """Horizontal confidence bars over the three wear levels."""
-    labels = [f"{station_prefix}{level}" for level in LEVELS]
-    figure = go.Figure(
-        go.Bar(
-            x=probabilities,
-            y=labels,
-            orientation="h",
-            marker={"color": [LEVEL_COLORS[level] for level in LEVELS]},
-            text=[f"{p:.0%}" for p in probabilities],
-            textposition="outside",
-            cliponaxis=False,
-            hovertemplate="%{y}: %{x:.1%}<extra></extra>",
-        )
-    )
-    figure.update_layout(
-        xaxis={"range": [0, 1.16], "showticklabels": False, "showgrid": False},
-        yaxis={"autorange": "reversed", "title": None},
-        margin={"l": 34, "r": 30, "t": 6, "b": 6},
-        height=150,
-        showlegend=False,
-    )
-    return figure
-
-
 def level_means_figure(data: StationData) -> go.Figure:
     """Mean measured curve per wear level -- how much the levels differ at all."""
     figure = go.Figure()

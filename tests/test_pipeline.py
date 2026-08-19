@@ -150,8 +150,6 @@ def test_every_page_imports_and_has_a_layout():
     assert {page["path"] for page in pages.values()} == {
         "/",
         "/details",
-        "/deep-drawing",
-        "/ironing",
         "/wear-threshold",
         "/excentricity",
     }

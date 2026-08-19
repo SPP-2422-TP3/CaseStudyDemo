@@ -11,13 +11,12 @@ One press stroke of a progressive die drives three stations — shear cutting, *
 **ironing**. Each forming station carries a force sensor. The demo shows what those signals reveal
 about the condition of the tools.
 
-The landing page is the **Status** board, with **More details** — what the data is, what each
-model is worth on it, how to read the dashboard, and the papers behind it — one click away. The
-pages that take one model apart at a time sit behind that page and the **Model detail** menu:
+The landing page is the **Status** board, with **About & Help** — what the data is, what each
+model is worth on it, how to read the dashboard, and the papers behind it — one click away. Its
+settings box picks which of the four trained models reads each station, and the board's Tool
+Wear card opens into that model's own technical panel and the prediction's explanation. The
+pages that take a further question apart on their own sit behind the **Model detail** menu:
 
-- **Deep Drawing** and **Ironing** — pick a production run and a stroke, pick one of four
-  models, and see the predicted wear state. A predicted critical state raises an alert, and the
-  prediction can be opened up to show which part of the stroke the model actually read.
 - **Wear Threshold** — the state nobody can label, located by anchoring on the simulated sweep.
 - **Excentricity** — step through measured strokes of the deep-drawing station and read how
   far off-centre the strip was fed, from the slope of the force plateau alone. Crossing the
@@ -58,7 +57,6 @@ src/spp2422_demo/
   calibration.py          GP calibration: placing the withheld wear state on the sweep
   explain.py              occlusion sensitivity and integrated gradients
   artifacts.py            trains, calibrates, caches to data/models/
-  station_view.py         the wear page, shared by both forming stages
   pages/                  one module per route, discovered by Dash
   components/             figures, cards, the alert
   assets/                 stylesheet and the CAD animation of the die

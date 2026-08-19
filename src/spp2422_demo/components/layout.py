@@ -5,8 +5,6 @@ from __future__ import annotations
 import dash_bootstrap_components as dbc
 from dash import html
 
-from ..theme import LEVEL_NAMES
-
 
 def percent(value: float) -> str:
     """A measured share as a percentage, to two decimals.
@@ -41,17 +39,6 @@ def panel(title: str, *children, note: str | None = None) -> dbc.Card:
     if note:
         body.append(html.Div(note, className="section-note mt-2"))
     return dbc.Card(dbc.CardBody(body))
-
-
-def level_badge(level: int, code: str) -> html.Span:
-    """The wear level, colour-coded the same way everywhere: green, amber, red."""
-    return html.Span(
-        [
-            html.Span(code, className="level-code"),
-            html.Span(LEVEL_NAMES[level]),
-        ],
-        className=f"level-badge level-{level}",
-    )
 
 
 def page_header(title: str, subtitle: str) -> html.Div:

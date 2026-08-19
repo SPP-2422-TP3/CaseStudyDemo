@@ -143,27 +143,6 @@ body {
   --bs-btn-active-color: #fff;
 }
 
-/* ---- wear level badges ------------------------------------------------ */
-
-.level-badge {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 0.5rem;
-  border-radius: 8px;
-  padding: 0.45rem 0.9rem;
-  font-weight: 600;
-  color: #fff;
-}
-
-.level-badge .level-code {
-  font-size: 1.35rem;
-  letter-spacing: -0.01em;
-}
-
-.level-1 { background: var(--fresh); }
-.level-2 { background: var(--worn); }
-.level-3 { background: var(--critical); }
-
 /* ---- critical wear modal ---------------------------------------------- */
 
 .alert-modal .modal-content {
