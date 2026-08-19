@@ -413,54 +413,61 @@ def _speed_control() -> dbc.Col:
     )
 
 
-def _controls() -> html.Div:
+def _visualization_controls() -> html.Div:
     return html.Div(
-        [
-            dbc.Row(
-                [
-                    dbc.Col(
-                        [
-                            html.Div("Jump to stroke", className="form-label"),
-                            dcc.Slider(
-                                id="status-stroke",
-                                min=FIRST_STROKE,
-                                max=N_STROKES - 1,
-                                step=1,
-                                value=FIRST_STROKE,
-                                marks={
-                                    value: str(value + 1)
-                                    for value in (FIRST_STROKE, 99, 199, N_STROKES - 1)
-                                },
-                                tooltip={"placement": "bottom", "always_visible": False},
-                            ),
-                        ],
-                        lg=8,
-                    ),
-                    dbc.Col(
-                        [
-                            html.Div("Alignment tolerance (mm)", className="form-label"),
-                            dcc.Slider(
-                                id="status-tolerance",
-                                min=0.30,
-                                max=0.90,
-                                step=0.15,
-                                value=DEFAULT_TOLERANCE_MM,
-                                marks={
-                                    value: f"{value:.2f}"
-                                    for value in (0.30, 0.45, 0.60, 0.75, 0.90)
-                                },
-                            ),
-                        ],
-                        lg=4,
-                    ),
-                ],
-                className="g-4 align-items-end",
-            ),
-            dbc.Row(
-                [_model_control(), _speed_control()],
-                className="g-4 mt-1",
-            ),
-        ],
+        dbc.Row(
+            [
+                dbc.Col(
+                    [
+                        html.Div("Jump to stroke", className="form-label"),
+                        dcc.Slider(
+                            id="status-stroke",
+                            min=FIRST_STROKE,
+                            max=N_STROKES - 1,
+                            step=1,
+                            value=FIRST_STROKE,
+                            marks={
+                                value: str(value + 1)
+                                for value in (FIRST_STROKE, 99, 199, N_STROKES - 1)
+                            },
+                            tooltip={"placement": "bottom", "always_visible": False},
+                        ),
+                    ],
+                    lg=6,
+                ),
+                _speed_control(),
+            ],
+            className="g-4 align-items-end",
+        ),
+        className="hmi-controls",
+    )
+
+
+def _model_settings_controls() -> html.Div:
+    return html.Div(
+        dbc.Row(
+            [
+                _model_control(),
+                dbc.Col(
+                    [
+                        html.Div("Strip Alignment Tolerance (mm)", className="form-label"),
+                        dcc.Slider(
+                            id="status-tolerance",
+                            min=0.30,
+                            max=0.90,
+                            step=0.15,
+                            value=DEFAULT_TOLERANCE_MM,
+                            marks={
+                                value: f"{value:.2f}"
+                                for value in (0.30, 0.45, 0.60, 0.75, 0.90)
+                            },
+                        ),
+                    ],
+                    lg=6,
+                ),
+            ],
+            className="g-4 align-items-end",
+        ),
         className="hmi-controls",
     )
 
@@ -472,7 +479,8 @@ def layout(**_kwargs):
             html.Div(card_slots(), className="hmi-board"),
             html.Div(id="status-reports-strip"),
             _feedback_bar(),
-            _controls(),
+            _visualization_controls(),
+            _model_settings_controls(),
             dcc.Interval(id="status-interval", interval=_INITIAL_INTERVAL_MS, disabled=True),
             dcc.Store(id="status-step", data=_INITIAL_STEP),
             dcc.Store(id="status-running", data=False),
