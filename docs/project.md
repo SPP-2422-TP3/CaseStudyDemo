@@ -227,5 +227,5 @@ change breaks it the tests fail rather than the page quietly becoming untrue.
 Each content pillar rests on a publication of the project: force-based process state
 classification ([Schumann et al. 2026](https://doi.org/10.1007/s12666-026-03839-4)) and
 simulation-driven modelling of strip misalignment
-([Moske et al. 2025](https://doi.org/10.1088/1742-6596/3104/1/012058)). The **More details** page
+([Moske et al. 2025](https://doi.org/10.1088/1742-6596/3104/1/012058)). The **About & Help** page
 lists these and ten more, grouped by what they contribute.

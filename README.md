@@ -13,10 +13,9 @@ about the condition of the tools.
 
 The landing page is the **Status** board, with **About & Help** — what the data is, what each
 model is worth on it, how to read the dashboard, and the papers behind it — one click away. Its
-settings box picks which of the four trained models reads each station, and the board's Strip
+model box picks one of the four trained models for both stations at once, and the board's Strip
 Alignment and Tool Wear cards each open into their own model's technical panel and the
-prediction's explanation. One page takes a further question apart on its own, behind the
-**Model detail** menu:
+prediction's explanation. One page takes a further question apart on its own:
 
 - **Wear Threshold** — the state nobody can label, located by anchoring on the simulated sweep.
 

@@ -12,10 +12,8 @@ from .theme import register_template
 
 HERE = Path(__file__).resolve().parent
 ASSETS = HERE / "assets"
-# Dash discovers and imports these itself. It loads them from their file path rather than
-# as package members, which is why they import the rest of the package absolutely and why
-# the shared station view lives outside this folder -- a module in here would be imported
-# twice and register its callbacks twice.
+# Dash discovers and imports these itself, loading them from their file path rather than as
+# package members, which is why they import the rest of the package absolutely.
 PAGES = HERE / "pages"
 
 TITLE = "SPP 2422 · TP3 — Tool Wear from Forming Forces"
@@ -24,30 +22,14 @@ TITLE = "SPP 2422 · TP3 — Tool Wear from Forming Forces"
 # `pages/status.py`) costs nothing to license-track.
 FONT_AWESOME = "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"
 
-# The status board is the page the dashboard opens on; everything that argues about how
-# the models work sits one menu behind it. A page opts in by setting `top_level=True`.
-MODEL_DETAIL = "Model Detail"
 # The one page that renders without any site chrome around it.
 STATUS_PATH = "/"
 
 
 def _nav() -> list:
-    """Top-level links, then everything else folded into one menu."""
+    """One nav link per registered page, in their declared order."""
     pages = sorted(dash.page_registry.values(), key=lambda page: page.get("order", 99))
-    top = [page for page in pages if page.get("top_level")]
-    rest = [page for page in pages if not page.get("top_level")]
-    return [
-        *(dbc.NavLink(page["name"], href=page["relative_path"], active="exact") for page in top),
-        dbc.DropdownMenu(
-            label=MODEL_DETAIL,
-            nav=True,
-            in_navbar=True,
-            align_end=True,
-            children=[
-                dbc.DropdownMenuItem(page["name"], href=page["relative_path"]) for page in rest
-            ],
-        ),
-    ]
+    return [dbc.NavLink(page["name"], href=page["relative_path"], active="exact") for page in pages]
 
 
 def _topbar() -> html.Div:

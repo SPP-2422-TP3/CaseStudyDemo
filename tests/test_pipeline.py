@@ -156,11 +156,6 @@ def test_every_page_imports_and_has_a_layout():
         assert callable(page["layout"])
         page["layout"]()
 
-    # The board and the page behind it are the two the visitor is steered to; the page
-    # that argues about one model at a time sits behind the Model detail menu.
-    top_level = {page["path"] for page in pages.values() if page.get("top_level")}
-    assert top_level == {"/", "/details"}
-
 
 @pytest.mark.parametrize("key", STATION_KEYS)
 def test_the_wear_threshold_body_renders(key):

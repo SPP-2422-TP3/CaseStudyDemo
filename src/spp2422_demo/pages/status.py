@@ -60,7 +60,7 @@ from spp2422_demo.scenario import (
     load_run,
 )
 
-dash.register_page(__name__, path="/", name="Status", order=0, top_level=True)
+dash.register_page(__name__, path="/", name="Status", order=0)
 
 # Operator-facing speed range for the run, in strokes per minute.
 MIN_SPEED = 10
@@ -457,8 +457,7 @@ def _model_settings_controls() -> html.Div:
                             step=0.15,
                             value=DEFAULT_TOLERANCE_MM,
                             marks={
-                                value: f"{value:.2f}"
-                                for value in (0.30, 0.45, 0.60, 0.75, 0.90)
+                                value: f"{value:.2f}" for value in (0.30, 0.45, 0.60, 0.75, 0.90)
                             },
                         ),
                     ],

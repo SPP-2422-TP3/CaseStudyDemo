@@ -44,11 +44,6 @@ class TrainedStation:
     calibration: Calibration
     wear: WearPosition  # per-stroke position between the pristine and the worn anchor
 
-    @property
-    def default_model(self) -> str:
-        """The model to select first."""
-        return max(self.models, key=lambda key: self.accuracy.get(key, 0.0))
-
 
 def _train(key: str) -> TrainedStation:
     data = load_station(key)

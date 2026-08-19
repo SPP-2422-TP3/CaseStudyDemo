@@ -20,7 +20,7 @@ from spp2422_demo.components.curve_figure import level_means_figure, measured_vs
 from spp2422_demo.components.layout import caveat, page_header, panel, stat_card
 from spp2422_demo.data import STATIONS
 
-dash.register_page(__name__, path="/details", name="About & Help", order=1, top_level=True)
+dash.register_page(__name__, path="/details", name="About & Help", order=1)
 
 MEASURED = "measured"
 SIMULATED = "simulated"
@@ -129,7 +129,7 @@ GROUPS: list[tuple[str, str, list[Paper]]] = [
                 "Preprint, 2025",
                 "10.21203/rs.3.rs-8164519/v1",
                 "When a simulated curve may stand in for a measured one — the question behind "
-                "the “vs. simulation” tab on the overview.",
+                "the “vs. simulation” tab above.",
             ),
             Paper(
                 "Structured representation of simulation and annotation data for machine "
@@ -185,8 +185,8 @@ GROUPS: list[tuple[str, str, list[Paper]]] = [
                 "D. Steinmann, F. Divo, M. Kraus, A. Wüst, L. Struppek, F. Friedrich, K. Kersting",
                 "arXiv:2412.05152, 2024",
                 "10.48550/arXiv.2412.05152",
-                "Why the accuracies on the overview page are reported twice: a model that keys on "
-                "which production run a stroke came from, rather than on wear, is exactly the "
+                "Why a held-out-stroke accuracy can mislead: a model that keys on which "
+                "production run a stroke came from, rather than on wear, is exactly the "
                 "shortcut catalogued here.",
             ),
             Paper(
@@ -270,9 +270,9 @@ GLOSSARY = [
     ),
     (
         "Held-out strokes",
-        "The split behind every accuracy on the station pages: train on the first 400 strokes "
-        "of each production run, score on the rest. Every wear level is in training, so this "
-        "measures monitoring a tool that has already been characterised.",
+        "The split behind the accuracy shown next to each model: train on the first 400 "
+        "strokes of each production run, score on the rest. Every wear level is in training, "
+        "so this measures monitoring a tool that has already been characterised.",
     ),
     (
         "The withheld centre state",

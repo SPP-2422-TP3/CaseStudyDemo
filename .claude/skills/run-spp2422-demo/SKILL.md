@@ -116,10 +116,10 @@ needed:
   screen) — the only way back to other pages from here is the ⓘ icon
   (`a[title="About & Help"]`), not a nav link.
 - `/details` — About & Help. Full top nav present here (`Status`, `About & Help`,
-  `Model Detail` dropdown).
-- `/wear-threshold` — folded under the "Model Detail" dropdown in nav, not a direct
-  top-level link. Its stat cards/chart are filled by a callback that fires *after*
-  the heading renders — see Gotchas.
+  `Wear Threshold`), all direct links.
+- `/wear-threshold` — a direct nav link like the other two pages. Its stat
+  cards/chart are filled by a callback that fires *after* the heading renders —
+  see Gotchas.
 
 ## Run (human path)
 
