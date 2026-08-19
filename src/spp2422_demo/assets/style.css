@@ -661,6 +661,7 @@ body {
   height: 2.3rem;
   justify-content: center;
   margin-left: 0.9rem;
+  text-decoration: none;
   width: 2.3rem;
 }
 
@@ -670,7 +671,7 @@ body {
   border-color: rgb(255 255 255 / 55%);
 }
 
-.hmi-help-icon { display: block; height: 1.3rem; width: 1.3rem; }
+.hmi-help-icon { color: #fff; font-size: 1.3rem; line-height: 1; }
 
 .hmi-board { margin-top: 1rem; }
 

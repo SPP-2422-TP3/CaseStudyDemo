@@ -19,6 +19,10 @@ ASSETS = HERE / "assets"
 PAGES = HERE / "pages"
 
 TITLE = "SPP 2422 · TP3 — Tool Wear from Forming Forces"
+# Font Awesome 4: font is OFL-1.1, CSS is MIT -- both permissive, neither requires
+# attribution, so pulling in the one icon the status board needs (see `_machine_bar` in
+# `pages/status.py`) costs nothing to license-track.
+FONT_AWESOME = "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css"
 
 # The status board is the page the dashboard opens on; everything that argues about how
 # the models work sits one menu behind it. A page opts in by setting `top_level=True`.
@@ -90,7 +94,7 @@ def _build() -> dash.Dash:
         use_pages=True,
         pages_folder=str(PAGES),
         assets_folder=str(ASSETS),
-        external_stylesheets=[dbc.themes.BOOTSTRAP],
+        external_stylesheets=[dbc.themes.BOOTSTRAP, FONT_AWESOME],
         title=TITLE,
         update_title=None,
         suppress_callback_exceptions=True,

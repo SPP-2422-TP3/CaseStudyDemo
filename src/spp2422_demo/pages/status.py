@@ -78,15 +78,6 @@ DEFAULT_SPEED = 100
 MIN_TICK_MS = 600
 # The single page behind the board; see the help link in `_machine_bar`.
 DETAILS_PATH = "/details"
-# A dot-and-stem info glyph, drawn by hand rather than pulled from an icon font: the
-# whole app already gets by on plain Unicode glyphs (see `health.ICON`), and a bare
-# vector shape carries no font-rendering quirks and no license to track.
-INFO_ICON = (
-    "data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'"
-    "%20fill='none'%20stroke='white'%20stroke-width='2.4'%20stroke-linecap='round'%3E"
-    "%3Ccircle%20cx='12'%20cy='7'%20r='1.1'%20fill='white'%20stroke='none'/%3E"
-    "%3Cline%20x1='12'%20y1='10.5'%20x2='12'%20y2='18'/%3E%3C/svg%3E"
-)
 # The board opens with its trailing windows already full, so the first frame reads the
 # same way every later one does rather than averaging a single stroke.
 FIRST_STROKE = WEAR_WINDOW - 1
@@ -162,7 +153,7 @@ def _machine_bar() -> html.Div:
                 className="hmi-run",
             ),
             dcc.Link(
-                html.Img(src=INFO_ICON, alt="", className="hmi-help-icon"),
+                html.I(className="fa fa-info-circle hmi-help-icon"),
                 href=DETAILS_PATH,
                 className="hmi-help",
                 title="About & Help",
