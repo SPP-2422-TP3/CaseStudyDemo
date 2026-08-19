@@ -114,6 +114,9 @@ ALIGNMENT_SCENARIO = Scenario(
 
 SCENARIOS = {scenario.key: scenario for scenario in (WEAR_SCENARIO, ALIGNMENT_SCENARIO)}
 DEFAULT_SCENARIO = WEAR_SCENARIO.key
+# The one model the board opens with, shared by both stations -- see `models.build_models`.
+# Highest pooled held-out accuracy across both stations' test strokes at the time of writing.
+DEFAULT_MODEL = "forest"
 
 
 @dataclass(frozen=True)
@@ -124,8 +127,8 @@ class Run:
     wear_level: dict[str, np.ndarray]  # station -> (N,) the recorded run it was drawn from
     position: dict[str, np.ndarray]  # station -> (N,) 0 = pristine anchor, 1 = worn
     proba: dict[str, np.ndarray]  # station -> (N, 3) classifier probabilities
-    model_name: dict[str, str]  # station -> the classifier reading it
-    model_key: dict[str, str]  # station -> that classifier's key into `trained.models`
+    model_name: str  # the one classifier reading both stations
+    model_key: str  # its key into `trained.models`, the same for both stations
     rows: np.ndarray  # (N,) row into the measured extract; the same stroke at both stations
     alignment_mm: np.ndarray  # (N,) predicted offset at the cup, out of fold
     alignment_true_mm: np.ndarray  # (N,) the offset its series was actually run at
@@ -217,7 +220,7 @@ def _stroke_rows(wear_level: dict[str, np.ndarray]) -> np.ndarray:
     return rows
 
 
-def _classify(station_key: str, rows: np.ndarray, model_key: str) -> tuple[np.ndarray, str]:
+def _classify(station_key: str, rows: np.ndarray, model_key: str) -> np.ndarray:
     """The chosen classifier applied to the scenario's strokes."""
     trained = load_artifacts(station_key)
     data = trained.data
@@ -225,29 +228,19 @@ def _classify(station_key: str, rows: np.ndarray, model_key: str) -> tuple[np.nd
     burst = data.peak_ref is not None
     peak_ref = data.peak_ref[rows] if burst else None
     features, _ = feature_matrix(data.curves[rows], burst=burst, peak_ref=peak_ref)
-    return model.predict_proba_matrix(data.curves[rows], features), model.name
+    return model.predict_proba_matrix(data.curves[rows], features)
 
 
 @cache
-def load_run(
-    scenario_key: str = DEFAULT_SCENARIO, model_choice: tuple[str, ...] | None = None
-) -> Run:
-    """Assemble one scenario's run. Cached -- the schedule and the chosen models are deterministic.
-
-    `model_choice` gives one model key per station, in `STATIONS` order; a station left unset
-    (or the whole tuple left `None`) falls back to that station's own default model.
-    """
+def load_run(scenario_key: str = DEFAULT_SCENARIO, model_key: str = DEFAULT_MODEL) -> Run:
+    """Assemble one scenario's run. Cached -- the schedule and the chosen model are
+    deterministic."""
     scenario = SCENARIOS[scenario_key]
     rng = np.random.default_rng(SEED)
-    choices = model_choice or (None,) * len(STATIONS)
-    model_keys = {
-        key: choice or load_artifacts(key).default_model
-        for key, choice in zip(STATIONS, choices, strict=True)
-    }
 
     wear_level = {key: _wear_schedule(scenario.wear[key], rng) for key in STATIONS}
     rows = _stroke_rows(wear_level)
-    classified = {key: _classify(key, rows, model_keys[key]) for key in STATIONS}
+    proba = {key: _classify(key, rows, model_key) for key in STATIONS}
 
     alignment = load_excentricity()
     infeed_level = _infeed_schedule(scenario.infeed)
@@ -260,9 +253,9 @@ def load_run(
         scenario=scenario,
         wear_level=wear_level,
         position={key: load_artifacts(key).wear.display(rows) for key in STATIONS},
-        proba={key: classified[key][0] for key in STATIONS},
-        model_name={key: classified[key][1] for key in STATIONS},
-        model_key=model_keys,
+        proba=proba,
+        model_name=load_artifacts(next(iter(STATIONS))).models[model_key].name,
+        model_key=model_key,
         rows=rows,
         alignment_mm=np.array([excentricity_mm(v) for v in alignment.predicted[alignment_rows]]),
         alignment_true_mm=np.array([excentricity_mm(v) for v in infeed_level]),

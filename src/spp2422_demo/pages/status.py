@@ -21,6 +21,7 @@ import dash_bootstrap_components as dbc
 from dash import ALL, Input, Output, State, callback, clientside_callback, ctx, dcc, html, no_update
 
 from spp2422_demo.artifacts import load_artifacts
+from spp2422_demo.components.layout import percent
 from spp2422_demo.components.status_cards import (
     ALIGNMENT,
     MACHINE,
@@ -48,6 +49,7 @@ from spp2422_demo.health import (
     machine_state,
 )
 from spp2422_demo.scenario import (
+    DEFAULT_MODEL,
     DEFAULT_SCENARIO,
     N_STROKES,
     SCENARIOS,
@@ -310,25 +312,44 @@ def _stop_card(critical: list[Signal]) -> str:
     return ALIGNMENT
 
 
-def model_id(station_key: str) -> dict[str, str]:
-    return {"type": "status-model", "station": station_key}
+def _overall_accuracy(model_key: str) -> float:
+    """One model's held-out accuracy pooled across both stations' test strokes.
+
+    A per-station accuracy would favour whichever station happens to be easier, and the
+    dropdown now offers one model for both stations at once, so the number next to it has
+    to answer for both.
+    """
+    correct = total = 0
+    for station_key in STATIONS:
+        trained = load_artifacts(station_key)
+        n_test = int((~trained.data.train_mask).sum())
+        correct += round(trained.accuracy[model_key] * n_test)
+        total += n_test
+    return correct / total
 
 
-def _model_control(station_key: str) -> dbc.Col:
-    trained = load_artifacts(station_key)
+def _model_control() -> dbc.Col:
+    trained = load_artifacts(next(iter(STATIONS)))
     return dbc.Col(
         [
-            html.Div(f"{STATIONS[station_key].name} model", className="form-label"),
+            html.Div("Tool Wear Model", className="form-label"),
             dcc.Dropdown(
-                id=model_id(station_key),
+                id="status-model",
                 options=[
-                    {"label": trained.models[key].name, "value": key} for key in trained.models
+                    {
+                        "label": (
+                            f"{trained.models[key].name} "
+                            f"({percent(_overall_accuracy(key))} accuracy)"
+                        ),
+                        "value": key,
+                    }
+                    for key in trained.models
                 ],
-                value=trained.default_model,
+                value=DEFAULT_MODEL,
                 clearable=False,
             ),
         ],
-        lg=6,
+        lg=4,
     )
 
 
@@ -376,7 +397,7 @@ def _controls() -> html.Div:
                 className="g-4 align-items-end",
             ),
             dbc.Row(
-                [_model_control(key) for key in STATIONS],
+                [_model_control()],
                 className="g-4 mt-1",
             ),
         ],
@@ -422,11 +443,11 @@ def layout(**_kwargs):
     Input("status-stroke", "value"),
     Input("status-tolerance", "value"),
     Input("status-scenario", "value"),
-    *(Input(model_id(key), "value") for key in STATIONS),
+    Input("status-model", "value"),
 )
-def _board(stroke, tolerance, scenario_key, dd_model, ir_model):
+def _board(stroke, tolerance, scenario_key, model_key):
     """Redraw the three card faces. The slots holding them are never replaced."""
-    run = load_run(scenario_key, (dd_model, ir_model))
+    run = load_run(scenario_key, model_key)
     counter = html.Span(f"{stroke + 1:,}".replace(",", " "), className="hmi-counter-value")
     return (*board(run, stroke, tolerance), counter)
 
@@ -480,27 +501,17 @@ def _open_feedback(_clicks, _stop_clicks, stroke):
     State("status-feedback-note", "value"),
     State("status-scenario", "value"),
     State("status-tolerance", "value"),
-    *(State(model_id(key), "value") for key in STATIONS),
+    State("status-model", "value"),
     prevent_initial_call=True,
 )
 def _record_report(
-    _submit,
-    _cancel,
-    stored,
-    anchor,
-    window,
-    issue,
-    note,
-    scenario_key,
-    tolerance,
-    dd_model,
-    ir_model,
+    _submit, _cancel, stored, anchor, window, issue, note, scenario_key, tolerance, model_key
 ):
     """Take the operator's word for it and record what the monitor said at the time."""
     if ctx.triggered_id == "status-feedback-cancel" or anchor is None:
         return no_update, False
     reports = from_store(stored)
-    run = load_run(scenario_key, (dd_model, ir_model))
+    run = load_run(scenario_key, model_key)
     reports.append(report(run, anchor, window, issue, note or "", tolerance))
     return to_store(reports), False
 
@@ -588,16 +599,16 @@ def _render_run_controls(running):
     State("status-tolerance", "value"),
     State("status-reports", "data"),
     State("status-scenario", "value"),
-    *(State(model_id(key), "value") for key in STATIONS),
+    State("status-model", "value"),
     prevent_initial_call=True,
 )
-def _open_detail(clicks, stroke, tolerance, stored, scenario_key, dd_model, ir_model):
+def _open_detail(clicks, stroke, tolerance, stored, scenario_key, model_key):
     # The slots are permanent, so a stroke no longer retriggers this -- but returning to
     # the board from another page mounts them afresh, and only a real click carries a
     # count on the card that triggered it.
     if not ctx.triggered_id or not any(clicks or []):
         return no_update, no_update, no_update
-    run = load_run(scenario_key, (dd_model, ir_model))
+    run = load_run(scenario_key, model_key)
     title, body = detail(ctx.triggered_id["card"], run, stroke, tolerance, from_store(stored))
     return True, title, body
 
@@ -610,16 +621,16 @@ def _open_detail(clicks, stroke, tolerance, stored, scenario_key, dd_model, ir_m
     Input("status-stroke", "value"),
     Input("status-tolerance", "value"),
     Input("status-scenario", "value"),
-    *(Input(model_id(key), "value") for key in STATIONS),
+    Input("status-model", "value"),
     State("status-last-machine-state", "data"),
     prevent_initial_call=True,
 )
-def _raise_stop_alert(stroke, tolerance, scenario_key, dd_model, ir_model, last_state):
+def _raise_stop_alert(stroke, tolerance, scenario_key, model_key, last_state):
     """Interrupt the operator on the transition into a stopped machine, not on every stroke
     that stays there -- the same rule the per-station wear alert used to apply, read here
     off the board's combined verdict instead of one station's level.
     """
-    run = load_run(scenario_key, (dd_model, ir_model))
+    run = load_run(scenario_key, model_key)
     state, current_signals = machine_state(run, stroke, tolerance)
     if state == CRITICAL and last_state != CRITICAL:
         critical = [signal for signal in current_signals if signal.state == CRITICAL]
@@ -637,12 +648,12 @@ def _raise_stop_alert(stroke, tolerance, scenario_key, dd_model, ir_model, last_
     State("status-tolerance", "value"),
     State("status-reports", "data"),
     State("status-scenario", "value"),
-    *(State(model_id(key), "value") for key in STATIONS),
+    State("status-model", "value"),
     prevent_initial_call=True,
 )
-def _view_stop_cause(_clicks, stroke, tolerance, stored, scenario_key, dd_model, ir_model):
+def _view_stop_cause(_clicks, stroke, tolerance, stored, scenario_key, model_key):
     """Send `View details` to the card that explains the stop; see `_stop_card`."""
-    run = load_run(scenario_key, (dd_model, ir_model))
+    run = load_run(scenario_key, model_key)
     _state, current_signals = machine_state(run, stroke, tolerance)
     critical = [signal for signal in current_signals if signal.state == CRITICAL]
     title, body = detail(_stop_card(critical), run, stroke, tolerance, from_store(stored))

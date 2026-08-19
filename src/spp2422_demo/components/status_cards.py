@@ -345,7 +345,7 @@ def _station_stroke(run: Run, station_key: str, stroke: int) -> html.Div:
     data = trained.data
     row = run.rows[stroke]
     level = run.level(station_key, stroke)
-    model_key = run.model_key[station_key]
+    model_key = run.model_key
     peak_ref = data.peak_ref[row] if data.peak_ref is not None else None
     attribution = explain(trained.models[model_key], data.curves[row], peak_ref, level)
 
@@ -354,7 +354,7 @@ def _station_stroke(run: Run, station_key: str, stroke: int) -> html.Div:
             html.Div(
                 [
                     html.Span(f"Stroke {stroke + 1}", className="card-title"),
-                    html.Span(run.model_name[station_key], className="card-model"),
+                    html.Span(run.model_name, className="card-model"),
                 ],
                 className="card-head mt-3",
             ),
