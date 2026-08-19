@@ -216,14 +216,14 @@ GLOSSARY = [
         "campaigns on separate tooling, so showing them as one machine is a composition.",
     ),
     (
-        "Scenario 1 and Scenario 2",
+        "Data Scenario 1 and Data Scenario 2",
         "The two authored runs the machine bar switches between, each carrying one fault. In "
-        "Scenario 1 the tools wear and the strip stays centred — ironing goes off first and "
-        "ends critical, deep drawing follows much later and over twice the span, because two "
-        "tools on one press do not go off together and a board worth having has to say which "
-        "one went. In Scenario 2 both tools stay fresh while the strip walks off centre "
-        "through every overfeed level the campaign ran. One fault at a time is the point: "
-        "shown together, nothing would demonstrate that the board can tell them apart.",
+        "Data Scenario 1 the tools wear and the strip stays centred — ironing goes off first "
+        "and ends critical, deep drawing follows much later and over twice the span, because "
+        "two tools on one press do not go off together and a board worth having has to say "
+        "which one went. In Data Scenario 2 both tools stay fresh while the strip walks off "
+        "centre through every overfeed level the campaign ran. One fault at a time is the "
+        "point: shown together, nothing would demonstrate that the board can tell them apart.",
     ),
     (
         "Good, watch, stop",
@@ -347,7 +347,7 @@ def _person(name: str, institute: str, url: str) -> dbc.Col:
             target="_blank",
             className="person",
         ),
-        md=6,
+        md=12,
     )
 
 
@@ -447,6 +447,7 @@ def layout(**_kwargs):
                                 config={"displayModeBar": False},
                             ),
                             note=(
+                                "Data Scenario 1: the centred-strip, tool-wear campaign. "
                                 "Normalized force on a shared event-time axis: 0 is the onset of "
                                 "the forming event, 1 its end."
                             ),
