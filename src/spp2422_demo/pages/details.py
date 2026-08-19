@@ -24,7 +24,7 @@ from spp2422_demo.components.curve_figure import (
 from spp2422_demo.components.layout import caveat, page_header, panel, stat_card
 from spp2422_demo.data import STATIONS
 
-dash.register_page(__name__, path="/details", name="More Details", order=1, top_level=True)
+dash.register_page(__name__, path="/details", name="About & Help", order=1, top_level=True)
 
 MEASURED = "measured"
 SIMULATED = "simulated"

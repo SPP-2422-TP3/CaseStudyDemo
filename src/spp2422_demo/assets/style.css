@@ -667,6 +667,27 @@ body {
   color: #fff;
 }
 
+.hmi-help {
+  align-items: center;
+  background: rgb(255 255 255 / 12%);
+  border: 1px solid rgb(255 255 255 / 32%);
+  border-radius: 50%;
+  display: flex;
+  flex-shrink: 0;
+  height: 2.3rem;
+  justify-content: center;
+  margin-left: 0.9rem;
+  width: 2.3rem;
+}
+
+.hmi-help:hover,
+.hmi-help:focus {
+  background: rgb(255 255 255 / 24%);
+  border-color: rgb(255 255 255 / 55%);
+}
+
+.hmi-help-icon { display: block; height: 1.3rem; width: 1.3rem; }
+
 .hmi-board { margin-top: 1rem; }
 
 .hmi-controls {
@@ -709,25 +730,6 @@ body {
 }
 
 .topbar-hidden { display: none; }
-
-.hmi-links {
-  align-items: baseline;
-  border-top: 1px solid var(--line);
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.9rem;
-  margin-top: 1.4rem;
-  padding-top: 0.9rem;
-}
-
-.hmi-link {
-  color: var(--accent);
-  font-size: 0.82rem;
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.hmi-link:hover { text-decoration: underline; }
 
 /* ---- the three-stage wear track ---------------------------------------- */
 

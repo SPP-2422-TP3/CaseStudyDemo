@@ -57,8 +57,17 @@ from spp2422_demo.scenario import (
 dash.register_page(__name__, path="/", name="Status", order=0, top_level=True)
 
 STREAM_INTERVAL_MS = 600
-# The single page behind the board; see `_details_link`.
+# The single page behind the board; see the help link in `_machine_bar`.
 DETAILS_PATH = "/details"
+# A dot-and-stem info glyph, drawn by hand rather than pulled from an icon font: the
+# whole app already gets by on plain Unicode glyphs (see `health.ICON`), and a bare
+# vector shape carries no font-rendering quirks and no license to track.
+INFO_ICON = (
+    "data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%2024%2024'"
+    "%20fill='none'%20stroke='white'%20stroke-width='2.4'%20stroke-linecap='round'%3E"
+    "%3Ccircle%20cx='12'%20cy='7'%20r='1.1'%20fill='white'%20stroke='none'/%3E"
+    "%3Cline%20x1='12'%20y1='10.5'%20x2='12'%20y2='18'/%3E%3C/svg%3E"
+)
 # The board opens with its trailing windows already full, so the first frame reads the
 # same way every later one does rather than averaging a single stroke.
 FIRST_STROKE = WEAR_WINDOW - 1
@@ -87,7 +96,9 @@ def _scenario_picker() -> dbc.RadioItems:
 
 
 def _machine_bar() -> html.Div:
-    """The equipment strip: what this is, what it is running, and how far into it."""
+    """The equipment strip: what this is, what it is running, how far into it, and -- since
+    the board renders without the site's top bar -- the one way off it, in the far corner
+    an operator expects a help icon to sit."""
     return html.Div(
         [
             html.Div(
@@ -113,6 +124,12 @@ def _machine_bar() -> html.Div:
                     dbc.Button("Run", id="status-play", className="hmi-button"),
                 ],
                 className="hmi-run",
+            ),
+            dcc.Link(
+                html.Img(src=INFO_ICON, alt="", className="hmi-help-icon"),
+                href=DETAILS_PATH,
+                className="hmi-help",
+                title="About & Help",
             ),
         ],
         className="hmi-bar",
@@ -283,19 +300,6 @@ def _stop_card(critical: list[Signal]) -> str:
     return ALIGNMENT
 
 
-def _details_link() -> html.Div:
-    """The way off the board.
-
-    The status page renders without the site's top bar, so this is the only route to
-    everything else. It is one link rather than a row of them: the board is a shop-floor
-    screen, and the page it points at carries its own way on to the per-station pages.
-    """
-    return html.Div(
-        dcc.Link("More Details", href=DETAILS_PATH, className="hmi-link"),
-        className="hmi-links",
-    )
-
-
 def _controls() -> html.Div:
     return html.Div(
         [
@@ -339,7 +343,6 @@ def _controls() -> html.Div:
                 ],
                 className="g-4 align-items-end",
             ),
-            _details_link(),
         ],
         className="hmi-controls",
     )
@@ -354,6 +357,7 @@ def layout(**_kwargs):
             _feedback_bar(),
             _controls(),
             dcc.Interval(id="status-interval", interval=STREAM_INTERVAL_MS, disabled=True),
+            dcc.Store(id="status-running", data=False),
             dcc.Store(id="status-auto-stroke", data=FIRST_STROKE),
             dcc.Store(id="status-reports", data=[]),
             dcc.Store(id="status-feedback-anchor"),
@@ -493,37 +497,56 @@ def _advance(_ticks, stroke):
 
 
 @callback(
-    Output("status-interval", "disabled", allow_duplicate=True),
-    Output("status-play", "children", allow_duplicate=True),
-    Output("status-live-dot", "className", allow_duplicate=True),
+    Output("status-running", "data", allow_duplicate=True),
     Input("status-stroke", "value"),
     State("status-auto-stroke", "data"),
-    State("status-interval", "disabled"),
+    State("status-running", "data"),
     prevent_initial_call=True,
 )
-def _pause_on_manual_stroke(stroke, auto_stroke, disabled):
+def _pause_on_manual_stroke(stroke, auto_stroke, running):
     """A hand on the slider always wins: stop the run rather than race it for the value.
 
     `_advance` writes the slider from a `State` read that can go stale in flight, so a tick
     landing just after a manual jump can silently snap the slider back. Stopping the run the
     moment the slider shows something other than its own last write closes that window
     instead of trying to win the race.
+
+    This only ever writes `status-running`, never the controls themselves: see
+    `_render_run_controls` for why.
     """
-    if disabled or stroke == auto_stroke:
-        return no_update, no_update, no_update
-    return True, "Run", "hmi-dot"
+    if not running or stroke == auto_stroke:
+        return no_update
+    return False
+
+
+@callback(
+    Output("status-running", "data"),
+    Input("status-play", "n_clicks"),
+    State("status-running", "data"),
+    prevent_initial_call=True,
+)
+def _toggle(_clicks, running):
+    return not running
 
 
 @callback(
     Output("status-interval", "disabled"),
     Output("status-play", "children"),
     Output("status-live-dot", "className"),
-    Input("status-play", "n_clicks"),
-    State("status-interval", "disabled"),
-    prevent_initial_call=True,
+    Input("status-running", "data"),
 )
-def _toggle(_clicks, disabled):
-    if disabled:
+def _render_run_controls(running):
+    """The one place that turns "is it running" into the interval, the button and the dot.
+
+    `_toggle`, `_pause_on_manual_stroke` and `_raise_stop_alert` each have their own reason
+    to start or stop the run, and each used to write the interval's `disabled`, the button's
+    label and the dot's class directly -- three independent writers racing for the same
+    three outputs, which is exactly how the button and the dot could end up disagreeing
+    with what was actually running. Now they only ever set `status-running`, and this
+    callback is the single, deterministic view of it, so the controls can never show a state
+    that store does not hold.
+    """
+    if running:
         return False, "Pause", "hmi-dot hmi-dot-live"
     return True, "Run", "hmi-dot"
 
@@ -554,9 +577,7 @@ def _open_detail(clicks, stroke, tolerance, stored, scenario_key):
 @callback(
     Output("status-stop-modal", "is_open"),
     Output("status-stop-body", "children"),
-    Output("status-interval", "disabled", allow_duplicate=True),
-    Output("status-play", "children", allow_duplicate=True),
-    Output("status-live-dot", "className", allow_duplicate=True),
+    Output("status-running", "data", allow_duplicate=True),
     Output("status-last-machine-state", "data"),
     Input("status-stroke", "value"),
     Input("status-tolerance", "value"),
@@ -573,8 +594,8 @@ def _raise_stop_alert(stroke, tolerance, scenario_key, last_state):
     state, current_signals = machine_state(run, stroke, tolerance)
     if state == CRITICAL and last_state != CRITICAL:
         critical = [signal for signal in current_signals if signal.state == CRITICAL]
-        return True, _stop_body(critical, stroke), True, "Run", "hmi-dot", state
-    return no_update, no_update, no_update, no_update, no_update, state
+        return True, _stop_body(critical, stroke), False, state
+    return no_update, no_update, no_update, state
 
 
 @callback(
