@@ -1,10 +1,10 @@
-"""The one page behind the board: what the data is, how well the models read it, how to
-read the dashboard, and the published work it all stands on.
+"""The one page behind the board: what the data is, how to read the dashboard, and the
+published work it all stands on.
 
 The board is the demo; this is everything someone asks about it afterwards. It is one page
 rather than several because the questions arrive together -- what am I looking at, should I
 believe it, who did the work -- and a visitor who has to find three pages to answer them
-usually finds none. The per-station arguments stay on their own pages, linked from here.
+usually finds none.
 """
 
 from __future__ import annotations
@@ -16,11 +16,7 @@ import dash_bootstrap_components as dbc
 from dash import MATCH, Input, Output, callback, ctx, dcc, html
 
 from spp2422_demo.artifacts import load_artifacts
-from spp2422_demo.components.curve_figure import (
-    accuracy_figure,
-    level_means_figure,
-    measured_vs_simulated_figure,
-)
+from spp2422_demo.components.curve_figure import level_means_figure, measured_vs_simulated_figure
 from spp2422_demo.components.layout import caveat, page_header, panel, stat_card
 from spp2422_demo.data import STATIONS
 
@@ -340,29 +336,6 @@ def _placement(calibration) -> str:
     return f"{calibration.at(window, budget, 'mix').position:.3f}"
 
 
-def _deeper() -> dbc.Card:
-    """The way on to the pages that argue about one model at a time.
-
-    Built from the page registry rather than listed by hand, so a page added later cannot
-    go missing from the only route the board offers to it.
-    """
-    pages = sorted(
-        (page for page in dash.page_registry.values() if not page.get("top_level")),
-        key=lambda page: page.get("order", 99),
-    )
-    return panel(
-        "One Model at a Time",
-        html.Div(
-            [
-                dcc.Link(page["name"], href=page["relative_path"], className="page-link")
-                for page in pages
-            ],
-            className="page-links",
-        ),
-        note="Takes apart the harder question left off the board: the withheld wear state.",
-    )
-
-
 def _person(name: str, institute: str, url: str) -> dbc.Col:
     return dbc.Col(
         html.A(
@@ -484,44 +457,6 @@ def layout(**_kwargs):
                 ],
                 className="g-4 mb-4",
             ),
-            dbc.Row(
-                [
-                    dbc.Col(
-                        panel(
-                            f"{trained.data.station.name}: How Well the Models Read It",
-                            dcc.Graph(
-                                figure=accuracy_figure(trained.models, trained.accuracy),
-                                config={"displayModeBar": False},
-                            ),
-                        ),
-                        lg=6,
-                    )
-                    for trained in stations.values()
-                ],
-                className="g-4 mb-4",
-            ),
-            html.Div(
-                caveat(
-                    [
-                        html.Strong("Read these as monitoring, not as recognition. "),
-                        html.Span(
-                            "Every wear level appears in training here, and later strokes of "
-                            "the same runs are held back to score against — which is what a "
-                            "deployed model actually faces once its tool has been "
-                            "characterised. It is not evidence that a state the model has "
-                            "never been shown would be placed correctly. "
-                        ),
-                        html.Strong("That question has its own page: "),
-                        html.Span(
-                            "Wear Threshold withholds the intermediate state altogether and "
-                            f"asks whether the {n_simulated} simulated curves can put it back "
-                            "between the two measured extremes."
-                        ),
-                    ]
-                ),
-                className="mb-4",
-            ),
-            html.Div(_deeper(), className="mb-4"),
             page_header(
                 "Help and Background",
                 "How to read this dashboard, and the published work it stands on.",
@@ -544,7 +479,7 @@ def layout(**_kwargs):
                                 ]
                             ),
                         ),
-                        lg=7,
+                        lg=8,
                     ),
                     dbc.Col(
                         panel(
@@ -573,7 +508,7 @@ def layout(**_kwargs):
                                 ]
                             ),
                         ),
-                        lg=5,
+                        lg=4,
                     ),
                 ],
                 className="g-4 mb-4",
