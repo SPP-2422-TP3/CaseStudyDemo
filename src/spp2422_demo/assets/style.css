@@ -215,6 +215,11 @@ body {
 .glossary-text {
   color: var(--muted);
   font-size: 0.88rem;
+  text-align: justify;
+}
+
+.project-intro {
+  text-align: justify;
 }
 
 .person {

@@ -509,7 +509,8 @@ def layout(**_kwargs):
                                             "Learning Lab (",
                                             html.A("AIML Lab", href=AIML_URL, target="_blank"),
                                             "), both at TU Darmstadt.",
-                                        ]
+                                        ],
+                                        className="project-intro",
                                     ),
                                     dbc.Row(
                                         [_person(*person) for person in PEOPLE],
