@@ -66,13 +66,16 @@ dash.register_page(__name__, path="/", name="Status", order=0, top_level=True)
 MIN_SPEED = 10
 MAX_SPEED = 1000
 DEFAULT_SPEED = 100
-# The interval never ticks faster than this: below it, a round trip to re-render the
-# three cards (one of them a Plotly graph) cannot reliably keep up, and the run would
-# lag behind its own clock instead of skipping frames cleanly. Past this point, a higher
-# stroke rate is reached by advancing more strokes per tick rather than ticking faster --
-# see `_interval_and_step` and the clientside callbacks below, which mirror it in JS since
-# the run itself is stepped in the browser.
-MIN_TICK_MS = 150
+# The interval never ticks faster than this. It is not a fresh guess: it is the fixed
+# cadence the board's redraw -- three cards, one of them a re-mounted Plotly graph, plus
+# the separate stop-alert check, both round trips to the server on every tick -- already
+# ran at before speed became adjustable, and it visibly kept up. A round trip measurably
+# faster than this (down to ~150ms) still lags in practice, so rather than re-guess a
+# lower floor, the ceiling stays pinned to the one cadence already proven safe. Past this
+# point, a higher stroke rate is reached by advancing more strokes per tick rather than
+# ticking faster -- see `_interval_and_step` and the clientside callbacks below, which
+# mirror it in JS since the run itself is stepped in the browser.
+MIN_TICK_MS = 600
 # The single page behind the board; see the help link in `_machine_bar`.
 DETAILS_PATH = "/details"
 # A dot-and-stem info glyph, drawn by hand rather than pulled from an icon font: the
