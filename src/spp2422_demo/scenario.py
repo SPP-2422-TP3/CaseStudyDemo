@@ -87,7 +87,6 @@ class Scenario:
 
     key: str
     name: str
-    headline: str
     wear: dict[str, tuple[tuple[int, int, int], ...]]
     infeed: tuple[tuple[int, int], ...]
 
@@ -95,7 +94,6 @@ class Scenario:
 WEAR_SCENARIO = Scenario(
     key="wear",
     name="Scenario 1",
-    headline="Tool Wear",
     wear={
         # Ironing goes first -- friction acts directly on the forming force there -- and
         # it is the tool that reaches the critical stage at the end of the run.
@@ -110,7 +108,6 @@ WEAR_SCENARIO = Scenario(
 ALIGNMENT_SCENARIO = Scenario(
     key="alignment",
     name="Scenario 2",
-    headline="Strip Misalignment",
     wear={key: ((1, 0, 0),) for key in STATIONS},
     infeed=DRIFTING,
 )

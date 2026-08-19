@@ -67,7 +67,7 @@ def _scenario_picker() -> dbc.RadioItems:
     return dbc.RadioItems(
         id="status-scenario",
         options=[
-            {"label": f"{scenario.name} · {scenario.headline}", "value": key}
+            {"label": f"Data {scenario.name}", "value": key}
             for key, scenario in SCENARIOS.items()
         ],
         value=DEFAULT_SCENARIO,
@@ -86,7 +86,7 @@ def _machine_bar() -> html.Div:
                 [
                     html.Div("Progressive Die · Press Cell", className="hmi-label"),
                     html.Div(
-                        "Deep drawing · Ironing · Strip feed",
+                        "Deep Drawing · Ironing · Strip Feed",
                         className="hmi-line",
                     ),
                 ]
