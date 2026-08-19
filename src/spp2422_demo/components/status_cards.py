@@ -45,7 +45,7 @@ from .status_figures import (
 )
 
 MACHINE, WEAR, ALIGNMENT = "machine", "wear", "alignment"
-CARDS = (MACHINE, WEAR, ALIGNMENT)
+CARDS = (MACHINE, ALIGNMENT, WEAR)
 
 # Strokes drawn on a card face and in its detail window.
 FACE_STROKES = 60
@@ -246,8 +246,8 @@ def board(run: Run, stroke: int, tolerance_mm: float) -> tuple[dbc.Card, dbc.Car
     alignment = next(signal for signal in signals if signal.key == ALIGNMENT)
     return (
         machine_card(state, signals),
-        wear_card(signals),
         alignment_card(run, stroke, alignment, tolerance_mm),
+        wear_card(signals),
     )
 
 

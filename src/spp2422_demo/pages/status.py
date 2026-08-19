@@ -506,8 +506,8 @@ def layout(**_kwargs):
 
 @callback(
     Output(card_id(MACHINE), "children"),
-    Output(card_id(WEAR), "children"),
     Output(card_id(ALIGNMENT), "children"),
+    Output(card_id(WEAR), "children"),
     Output("status-counter", "children"),
     Input("status-stroke", "value"),
     Input("status-tolerance", "value"),
