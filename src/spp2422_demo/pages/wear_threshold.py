@@ -27,7 +27,7 @@ def layout(**_kwargs):
                 "the simulated friction sweep to put it back.",
             ),
             panel(
-                "The problem with the middle state",
+                "The Problem with the Middle State",
                 html.P(
                     [
                         "A tool does not step from good to scrap. It passes through a threshold "
@@ -93,7 +93,7 @@ def _headline(station_key: str, calibration) -> list:
         [
             dbc.Col(
                 stat_card(
-                    f"{withheld} placed at",
+                    f"{withheld} Placed At",
                     f"{mix.position:.3f}",
                     f"0.5 is exactly between the two anchors (window: {window_text}, "
                     f"budget: {budget} real strokes per endpoint)",
@@ -102,7 +102,7 @@ def _headline(station_key: str, calibration) -> list:
             ),
             dbc.Col(
                 stat_card(
-                    "Shuffled-sweep control",
+                    "Shuffled-Sweep Control",
                     f"{control.position:.3f}",
                     "the same curves with their friction ordering destroyed",
                 ),
@@ -110,7 +110,7 @@ def _headline(station_key: str, calibration) -> list:
             ),
             dbc.Col(
                 stat_card(
-                    "Against that control",
+                    "Against That Control",
                     f"p = {p:.4f}" if p >= 0.0001 else "p < 0.0001",
                     "paired over eight seeds",
                 ),
@@ -139,7 +139,7 @@ def _body(station_key: str):
             *_headline(station_key, calibration),
             html.Div(
                 panel(
-                    "Placement against the real-data budget",
+                    "Placement against the Real-Data Budget",
                     dcc.Graph(
                         figure=placement_figure(calibration), config={"displayModeBar": False}
                     ),
@@ -152,7 +152,7 @@ def _body(station_key: str):
             ),
             html.Div(
                 panel(
-                    "Classification quality against the real-data budget",
+                    "Classification Quality against the Real-Data Budget",
                     dcc.Graph(figure=quality_figure(calibration), config={"displayModeBar": False}),
                     note=(
                         "The same fitted values, cut at the sweep's tercile edges and scored as "

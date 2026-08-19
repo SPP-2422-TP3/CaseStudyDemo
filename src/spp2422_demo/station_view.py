@@ -109,7 +109,7 @@ def layout(station_key: str) -> html.Div:
                 [
                     dbc.Col(
                         panel(
-                            "Force signature of the selected stroke",
+                            "Force Signature of the Selected Stroke",
                             dcc.Graph(
                                 id=_id(station_key, "stroke-graph"),
                                 config={"displayModeBar": False},
@@ -125,7 +125,7 @@ def layout(station_key: str) -> html.Div:
                     ),
                     dbc.Col(
                         panel(
-                            "Predicted tool state",
+                            "Predicted Tool State",
                             html.Div(id=_id(station_key, "prediction-panel"), className="mb-3"),
                             dcc.Graph(
                                 id=_id(station_key, "confidence-graph"),
@@ -147,7 +147,7 @@ def layout(station_key: str) -> html.Div:
             ),
             dbc.Collapse(
                 panel(
-                    "Where the model found its evidence",
+                    "Where the Model Found Its Evidence",
                     dcc.Graph(
                         id=_id(station_key, "explain-graph"), config={"displayModeBar": False}
                     ),
@@ -169,7 +169,7 @@ def layout(station_key: str) -> html.Div:
                 className="mt-4",
             ),
             html.Div(
-                panel("About this model", html.Div(id=_id(station_key, "about-model"))),
+                panel("About This Model", html.Div(id=_id(station_key, "about-model"))),
                 className="mt-4",
             ),
             wear_alert(station),

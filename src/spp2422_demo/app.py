@@ -22,7 +22,7 @@ TITLE = "SPP 2422 · TP3 — Tool Wear from Forming Forces"
 
 # The status board is the page the dashboard opens on; everything that argues about how
 # the models work sits one menu behind it. A page opts in by setting `top_level=True`.
-MODEL_DETAIL = "Model detail"
+MODEL_DETAIL = "Model Detail"
 # The one page that renders without any site chrome around it.
 STATUS_PATH = "/"
 

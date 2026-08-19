@@ -51,9 +51,9 @@ DETAIL_STROKES = 100
 STAGE_NAMES = [LEVEL_NAMES[level] for level in LEVELS]
 
 CARD_TITLE = {
-    MACHINE: "Machine status",
-    WEAR: "Tool wear",
-    ALIGNMENT: "Strip alignment",
+    MACHINE: "Machine Status",
+    WEAR: "Tool Wear",
+    ALIGNMENT: "Strip Alignment",
 }
 
 
@@ -321,7 +321,7 @@ def _reports_panel(reports: list[Report]) -> html.Div:
     """What the operator has reported, against what the monitor was saying at the time."""
     if not reports:
         return html.Div(
-            f"No operator reports yet. *Report bad parts* asks how far back the parts were "
+            f"No operator reports yet. *Report Bad Parts* asks how far back the parts were "
             f"bad -- {FEEDBACK_STROKES} strokes by default -- and what was wrong with them, "
             "then records what the monitor said over the same window. That pair is what a "
             "label-collection loop needs. It does not retrain anything; the models are fixed.",
@@ -329,7 +329,7 @@ def _reports_panel(reports: list[Report]) -> html.Div:
         )
     return html.Div(
         [
-            html.Div("Operator reports", className="card-title mt-3"),
+            html.Div("Operator Reports", className="card-title mt-3"),
             *(
                 html.Div(
                     [
@@ -372,14 +372,14 @@ def detail(
     state, signals = machine_state(run, stroke, tolerance_mm)
     log = html.Div(
         [
-            html.Div(f"Last {LOG_ROWS} strokes", className="card-title"),
+            html.Div(f"Last {LOG_ROWS} Strokes", className="card-title"),
             stroke_log(run, stroke, tolerance_mm),
         ],
         className="mt-3",
     )
 
     if card == WEAR:
-        return "Tool wear", html.Div(
+        return "Tool Wear", html.Div(
             [
                 _graph(wear_trend_figure(run, strokes, flags)),
                 html.Div(
@@ -404,7 +404,7 @@ def detail(
         )
 
     if card == ALIGNMENT:
-        return "Strip alignment", html.Div(
+        return "Strip Alignment", html.Div(
             [
                 _graph(alignment_trend_figure(run, strokes, tolerance_mm, flags)),
                 html.Div(

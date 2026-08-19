@@ -24,7 +24,7 @@ from spp2422_demo.components.curve_figure import (
 from spp2422_demo.components.layout import caveat, page_header, panel, stat_card
 from spp2422_demo.data import STATIONS
 
-dash.register_page(__name__, path="/details", name="More details", order=1, top_level=True)
+dash.register_page(__name__, path="/details", name="More Details", order=1, top_level=True)
 
 MEASURED = "measured"
 SIMULATED = "simulated"
@@ -71,7 +71,7 @@ class Paper(NamedTuple):
 
 GROUPS: list[tuple[str, str, list[Paper]]] = [
     (
-        "What this dashboard shows",
+        "What This Dashboard Shows",
         "The two studies the pages are built on.",
         [
             Paper(
@@ -98,7 +98,7 @@ GROUPS: list[tuple[str, str, list[Paper]]] = [
         ],
     ),
     (
-        "Where the signals come from",
+        "Where the Signals Come From",
         "Sensing the press, and turning what it records into data a model can learn from.",
         [
             Paper(
@@ -140,7 +140,7 @@ GROUPS: list[tuple[str, str, list[Paper]]] = [
         ],
     ),
     (
-        "Seeing wear directly",
+        "Seeing Wear Directly",
         "The force signal only sees the effect of wear. These look at the tool surface itself.",
         [
             Paper(
@@ -163,7 +163,7 @@ GROUPS: list[tuple[str, str, list[Paper]]] = [
         ],
     ),
     (
-        "The machine learning side",
+        "The Machine Learning Side",
         "Work from the AI/ML Lab: how this demo explains and validates itself, and where the "
         "group's time series modelling goes next.",
         [
@@ -349,7 +349,7 @@ def _deeper() -> dbc.Card:
         key=lambda page: page.get("order", 99),
     )
     return panel(
-        "One model at a time",
+        "One Model at a Time",
         html.Div(
             [
                 dcc.Link(page["name"], href=page["relative_path"], className="page-link")
@@ -400,7 +400,7 @@ def layout(**_kwargs):
                 [
                     dbc.Col(
                         stat_card(
-                            "Measured strokes",
+                            "Measured Strokes",
                             f"{total_strokes:,}".replace(",", " "),
                             f"{n_own} × {n_other} production runs, 500 strokes each",
                         ),
@@ -408,7 +408,7 @@ def layout(**_kwargs):
                     ),
                     dbc.Col(
                         stat_card(
-                            "Simulated curves",
+                            "Simulated Curves",
                             str(n_simulated),
                             "finite element exports across friction coefficients",
                         ),
@@ -432,7 +432,7 @@ def layout(**_kwargs):
             dbc.Row(
                 dbc.Col(
                     panel(
-                        "The process",
+                        "The Process",
                         # Muted and inline are what let a browser autoplay this at all;
                         # the controls are there for pausing it mid-talk.
                         html.Video(
@@ -457,11 +457,11 @@ def layout(**_kwargs):
                 [
                     dbc.Col(
                         panel(
-                            f"{trained.data.station.name}: mean force per wear level",
+                            f"{trained.data.station.name}: Mean Force per Wear Level",
                             dbc.Tabs(
                                 [
                                     dbc.Tab(label="Measured", tab_id=MEASURED),
-                                    dbc.Tab(label="vs. simulation", tab_id=SIMULATED),
+                                    dbc.Tab(label="vs. Simulation", tab_id=SIMULATED),
                                 ],
                                 id=_id(trained.data.station.key, "curves-tabs"),
                                 active_tab=MEASURED,
@@ -489,7 +489,7 @@ def layout(**_kwargs):
                 [
                     dbc.Col(
                         panel(
-                            f"{trained.data.station.name}: how well the models read it",
+                            f"{trained.data.station.name}: How Well the Models Read It",
                             dcc.Graph(
                                 figure=accuracy_figure(trained.models, trained.accuracy),
                                 config={"displayModeBar": False},
@@ -531,7 +531,7 @@ def layout(**_kwargs):
                 [
                     dbc.Col(
                         panel(
-                            "Reading the dashboard",
+                            "Reading the Dashboard",
                             html.Div(
                                 [
                                     html.Div(
@@ -549,7 +549,7 @@ def layout(**_kwargs):
                     ),
                     dbc.Col(
                         panel(
-                            "The project",
+                            "The Project",
                             html.Div(
                                 [
                                     html.P(

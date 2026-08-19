@@ -144,7 +144,7 @@ def layout(**_kwargs):
                 [
                     dbc.Col(
                         panel(
-                            "Punch force of the selected stroke",
+                            "Punch Force of the Selected Stroke",
                             dcc.Graph(id="exc-stroke-graph", config={"displayModeBar": False}),
                             note=(
                                 "The dotted line is the mean stroke of the centred series, so "
@@ -156,7 +156,7 @@ def layout(**_kwargs):
                     ),
                     dbc.Col(
                         panel(
-                            "Predicted misalignment",
+                            "Predicted Misalignment",
                             html.Div(id="exc-prediction", className="mb-2"),
                             dcc.Graph(id="exc-indicator", config={"displayModeBar": False}),
                             html.Div(id="exc-features", className="mt-2"),
@@ -170,7 +170,7 @@ def layout(**_kwargs):
                 [
                     dbc.Col(
                         panel(
-                            "The plateau, and the line fitted across it",
+                            "The Plateau, and the Line Fitted across It",
                             dcc.Graph(id="exc-plateau-graph", config={"displayModeBar": False}),
                             note=(
                                 "Zoomed to the fitting window. The tilt is a fraction of a "
@@ -182,7 +182,7 @@ def layout(**_kwargs):
                     ),
                     dbc.Col(
                         panel(
-                            "Every measured stroke, as the model sees it",
+                            "Every Measured Stroke, as the Model Sees It",
                             dcc.Graph(id="exc-feature-graph", config={"displayModeBar": False}),
                             note=(
                                 "The whole 912-sample trace reduced to the two numbers the "
@@ -213,7 +213,7 @@ def layout(**_kwargs):
                 ),
                 className="mt-4",
             ),
-            html.Div(panel("About this model", _about(data)), className="mt-4"),
+            html.Div(panel("About This Model", _about(data)), className="mt-4"),
             excentricity_alert(),
             dcc.Interval(id="exc-interval", interval=STREAM_INTERVAL_MS, disabled=True),
             dcc.Store(id="exc-current"),
@@ -355,14 +355,14 @@ def update_view(level, stroke, threshold):
         [
             dbc.Col(
                 stat_card(
-                    "Plateau slope",
+                    "Plateau Slope",
                     f"{data.slope_kn_per_s(index):+.2f}",
                     "kN/s — tilts down as the blank goes off-centre",
                 )
             ),
             dbc.Col(
                 stat_card(
-                    "Plateau force",
+                    "Plateau Force",
                     f"{data.intercept_kn(index):.2f}",
                     "kN at the start of the window — falls with misalignment",
                 )

@@ -28,7 +28,7 @@ def excentricity_alert() -> dbc.Modal:
                         dbc.Col(
                             [
                                 html.Div(
-                                    "Strip misalignment out of tolerance",
+                                    "Strip Misalignment Out of Tolerance",
                                     className="alert-title",
                                 ),
                                 html.Div("Deep drawing station", className="alert-sub"),

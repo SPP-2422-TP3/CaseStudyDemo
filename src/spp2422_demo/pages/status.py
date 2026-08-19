@@ -84,7 +84,7 @@ def _machine_bar() -> html.Div:
         [
             html.Div(
                 [
-                    html.Div("Progressive die · press cell", className="hmi-label"),
+                    html.Div("Progressive Die · Press Cell", className="hmi-label"),
                     html.Div(
                         "Deep drawing · Ironing · Strip feed",
                         className="hmi-line",
@@ -147,7 +147,7 @@ def _feedback_form() -> dbc.Modal:
     """What the operator is asked, and nothing more: when, what, and anything else."""
     return dbc.Modal(
         [
-            dbc.ModalHeader(dbc.ModalTitle("Report bad parts")),
+            dbc.ModalHeader(dbc.ModalTitle("Report Bad Parts")),
             dbc.ModalBody(
                 [
                     html.Div(id="status-feedback-when", className="feedback-anchor"),
@@ -204,7 +204,7 @@ def _details_link() -> html.Div:
     screen, and the page it points at carries its own way on to the per-station pages.
     """
     return html.Div(
-        dcc.Link("More details", href=DETAILS_PATH, className="hmi-link"),
+        dcc.Link("More Details", href=DETAILS_PATH, className="hmi-link"),
         className="hmi-links",
     )
 

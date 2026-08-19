@@ -38,9 +38,9 @@ ICON = {GOOD: "✓", WATCH: "▲", CRITICAL: "⚠"}
 # short word, sized to be read across a press hall; the detail window shows the sentence.
 MACHINE_LABEL = {GOOD: "OK", WATCH: "WATCH", CRITICAL: "STOP"}
 MACHINE_HEADLINE = {
-    GOOD: "Running normally",
-    WATCH: "Watch this press",
-    CRITICAL: "Stop the press",
+    GOOD: "Running Normally",
+    WATCH: "Watch This Press",
+    CRITICAL: "Stop the Press",
 }
 
 # A wear level maps straight onto a state: the intermediate one is the threshold this

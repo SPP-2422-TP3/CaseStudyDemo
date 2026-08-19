@@ -28,7 +28,7 @@ def wear_alert(station: Station) -> dbc.Modal:
                         dbc.Col(html.Div("⚠", className="alert-icon"), width="auto"),
                         dbc.Col(
                             [
-                                html.Div("Critical tool wear detected", className="alert-title"),
+                                html.Div("Critical Tool Wear Detected", className="alert-title"),
                                 html.Div(f"{station.name} station", className="alert-sub"),
                             ]
                         ),
