@@ -10,7 +10,7 @@ from __future__ import annotations
 import dash
 import dash_bootstrap_components as dbc
 import numpy as np
-from dash import Input, Output, State, callback, dcc, html, no_update
+from dash import Input, Output, State, callback, clientside_callback, dcc, html, no_update
 
 from spp2422_demo.components.excentricity_alert import alert_facts, excentricity_alert
 from spp2422_demo.components.excentricity_figure import (
@@ -216,9 +216,9 @@ def layout(**_kwargs):
             html.Div(panel("About This Model", _about(data)), className="mt-4"),
             excentricity_alert(),
             dcc.Interval(id="exc-interval", interval=STREAM_INTERVAL_MS, disabled=True),
+            dcc.Store(id="exc-running", data=False),
             dcc.Store(id="exc-current"),
             dcc.Store(id="exc-alarm-latched", data=False),
-            dcc.Store(id="exc-auto-stroke", data={"stroke": 1, "series": INFEED_LEVELS[0]}),
         ]
     )
 
@@ -389,75 +389,69 @@ def update_view(level, stroke, threshold):
     )
 
 
-@callback(
+# Stepping the stream forward runs in the browser rather than on the server. A manual move
+# on the stroke slider or the series dropdown is also just a browser-side write to their
+# `value`, so doing the tick here too means the two can never race a network round trip
+# against each other: whichever the browser processes last is what stays on screen, and a
+# manual move is never silently overwritten by a tick that was already in flight. It also
+# means a manual move no longer needs to pause the stream to stay safe -- the next tick
+# simply continues from wherever the controls now point.
+clientside_callback(
+    f"""
+    function(n_intervals, stroke, level) {{
+        const levels = {list(INFEED_LEVELS)!r};
+        if (stroke < {STROKES_PER_SERIES}) {{
+            return [stroke + 1, window.dash_clientside.no_update];
+        }}
+        const position = levels.indexOf(level);
+        const nextLevel = levels[(position + 1) % levels.length];
+        return [1, nextLevel];
+    }}
+    """,
     Output("exc-stroke", "value"),
     Output("exc-series", "value"),
-    Output("exc-auto-stroke", "data"),
     Input("exc-interval", "n_intervals"),
     State("exc-stroke", "value"),
     State("exc-series", "value"),
     prevent_initial_call=True,
 )
-def advance_stream(_, stroke, level):
-    """Walk the strokes in production order, rolling on into the next infeed series.
 
-    Running the series in order is what makes the stream worth watching: the misalignment
-    climbs as it goes, so the limit is crossed on the way rather than being set up. The
-    landing spot is echoed into `exc-auto-stroke` in the same response, so
-    `pause_on_manual_stroke` below can tell its own writes apart from a hand on the
-    controls.
-    """
-    if stroke < STROKES_PER_SERIES:
-        next_stroke = stroke + 1
-        return next_stroke, no_update, {"stroke": next_stroke, "series": level}
-    position = INFEED_LEVELS.index(level)
-    next_level = INFEED_LEVELS[(position + 1) % len(INFEED_LEVELS)]
-    return 1, next_level, {"stroke": 1, "series": next_level}
+
+@callback(
+    Output("exc-running", "data"),
+    Input("exc-stream-toggle", "n_clicks"),
+    State("exc-running", "data"),
+    prevent_initial_call=True,
+)
+def toggle_stream(_, running):
+    return not running
 
 
 @callback(
     Output("exc-interval", "disabled"),
     Output("exc-stream-toggle", "children"),
     Output("exc-stream-toggle", "color"),
-    Input("exc-stream-toggle", "n_clicks"),
-    State("exc-interval", "disabled"),
-    prevent_initial_call=True,
+    Input("exc-running", "data"),
 )
-def toggle_stream(_, disabled):
-    running = disabled  # the click flips it
-    return (not running, "⏸ Pause" if running else "▶ Stream", "warning" if running else "primary")
+def render_stream_controls(running):
+    """The one place that turns "is it running" into the interval and the button.
 
-
-@callback(
-    Output("exc-interval", "disabled", allow_duplicate=True),
-    Output("exc-stream-toggle", "children", allow_duplicate=True),
-    Output("exc-stream-toggle", "color", allow_duplicate=True),
-    Input("exc-stroke", "value"),
-    Input("exc-series", "value"),
-    State("exc-auto-stroke", "data"),
-    State("exc-interval", "disabled"),
-    prevent_initial_call=True,
-)
-def pause_on_manual_stroke(stroke, level, auto, disabled):
-    """A hand on the stroke slider or the series picker always wins: stop the stream rather
-    than race it for the value.
-
-    `advance_stream` writes these from a `State` read that can go stale in flight, so a tick
-    landing just after a manual move can silently snap the controls back. Stopping the
-    stream the moment either control shows something other than its own last write closes
-    that window instead of trying to win the race.
+    `toggle_stream`, `raise_alarm` and `resume_stream` each have their own reason to start
+    or stop the stream, and each used to write the interval's `disabled` and the button's
+    label and color directly -- independent writers racing for the same three outputs,
+    which is how the button could end up disagreeing with what was actually streaming. Now
+    they only ever set `exc-running`, and this callback is the single, deterministic view
+    of it.
     """
-    if disabled or auto is None or (stroke == auto["stroke"] and level == auto["series"]):
-        return no_update, no_update, no_update
+    if running:
+        return False, "⏸ Pause", "warning"
     return True, "▶ Stream", "primary"
 
 
 @callback(
     Output("exc-alert-modal", "is_open"),
     Output("exc-alert-facts", "children"),
-    Output("exc-interval", "disabled", allow_duplicate=True),
-    Output("exc-stream-toggle", "children", allow_duplicate=True),
-    Output("exc-stream-toggle", "color", allow_duplicate=True),
+    Output("exc-running", "data", allow_duplicate=True),
     Output("exc-alarm-latched", "data"),
     Input("exc-current", "data"),
     State("exc-threshold", "value"),
@@ -478,15 +472,15 @@ def raise_alarm(current, threshold, source, latched):
     # A part-filled window is one noisy stroke wearing an average's name. Hold the alarm
     # off until it has the strokes it claims to have.
     if source == "running" and current["running_n"] < RUNNING_WINDOW:
-        return no_update, no_update, no_update, no_update, no_update, latched
+        return no_update, no_update, no_update, latched
     if latched:
         cleared = watched < RE_ARM_FRACTION * threshold
-        return no_update, no_update, no_update, no_update, no_update, not cleared
+        return no_update, no_update, no_update, not cleared
     if watched < threshold:
-        return no_update, no_update, no_update, no_update, no_update, False
+        return no_update, no_update, no_update, False
 
     facts = alert_facts(watched, current["true"], threshold, current["series"], current["stroke"])
-    return True, facts, True, "▶ Stream", "primary", True
+    return True, facts, False, True
 
 
 @callback(

@@ -18,7 +18,7 @@ from __future__ import annotations
 
 import dash
 import dash_bootstrap_components as dbc
-from dash import ALL, Input, Output, State, callback, ctx, dcc, html, no_update
+from dash import ALL, Input, Output, State, callback, clientside_callback, ctx, dcc, html, no_update
 
 from spp2422_demo.components.status_cards import (
     ALIGNMENT,
@@ -358,7 +358,6 @@ def layout(**_kwargs):
             _controls(),
             dcc.Interval(id="status-interval", interval=STREAM_INTERVAL_MS, disabled=True),
             dcc.Store(id="status-running", data=False),
-            dcc.Store(id="status-auto-stroke", data=FIRST_STROKE),
             dcc.Store(id="status-reports", data=[]),
             dcc.Store(id="status-feedback-anchor"),
             dcc.Store(id="status-last-machine-state"),
@@ -397,7 +396,6 @@ def _board(stroke, tolerance, scenario_key):
 
 @callback(
     Output("status-stroke", "value", allow_duplicate=True),
-    Output("status-auto-stroke", "data", allow_duplicate=True),
     Output("status-reports", "data", allow_duplicate=True),
     Input("status-scenario", "value"),
     prevent_initial_call=True,
@@ -407,10 +405,9 @@ def _restart(_scenario_key):
 
     The reports are pinned to stroke numbers, and stroke 200 of one run has nothing to do
     with stroke 200 of the other. Carrying them across would put an operator's verdict
-    against strokes they never saw. `status-auto-stroke` is rewound in the same response so
-    a run in progress does not read as a manual jump and pause itself; see `_advance`.
+    against strokes they never saw.
     """
-    return FIRST_STROKE, FIRST_STROKE, []
+    return FIRST_STROKE, []
 
 
 @callback(
@@ -481,42 +478,23 @@ def _reports_strip(stored):
     )
 
 
-@callback(
+# Stepping the run forward runs in the browser rather than on the server. A manual jump on
+# the same slider is also just a browser-side write to its `value`, so doing the tick here
+# too means the two can never race a network round trip against each other: whichever the
+# browser processes last is what stays on screen, and a jump is never silently overwritten
+# by a tick that was already in flight. It also means a jump no longer needs to pause the
+# run to stay safe -- the next tick simply continues from wherever the slider now points.
+clientside_callback(
+    f"""
+    function(n_intervals, stroke) {{
+        return (stroke >= {N_STROKES - 1}) ? {FIRST_STROKE} : stroke + 1;
+    }}
+    """,
     Output("status-stroke", "value"),
-    Output("status-auto-stroke", "data"),
     Input("status-interval", "n_intervals"),
     State("status-stroke", "value"),
     prevent_initial_call=True,
 )
-def _advance(_ticks, stroke):
-    """Step the run forward. The value is echoed into `status-auto-stroke` in the same
-    response, so `_pause_on_manual_stroke` below can tell its own writes apart from a hand
-    on the slider."""
-    next_stroke = FIRST_STROKE if stroke >= N_STROKES - 1 else stroke + 1
-    return next_stroke, next_stroke
-
-
-@callback(
-    Output("status-running", "data", allow_duplicate=True),
-    Input("status-stroke", "value"),
-    State("status-auto-stroke", "data"),
-    State("status-running", "data"),
-    prevent_initial_call=True,
-)
-def _pause_on_manual_stroke(stroke, auto_stroke, running):
-    """A hand on the slider always wins: stop the run rather than race it for the value.
-
-    `_advance` writes the slider from a `State` read that can go stale in flight, so a tick
-    landing just after a manual jump can silently snap the slider back. Stopping the run the
-    moment the slider shows something other than its own last write closes that window
-    instead of trying to win the race.
-
-    This only ever writes `status-running`, never the controls themselves: see
-    `_render_run_controls` for why.
-    """
-    if not running or stroke == auto_stroke:
-        return no_update
-    return False
 
 
 @callback(
@@ -538,13 +516,12 @@ def _toggle(_clicks, running):
 def _render_run_controls(running):
     """The one place that turns "is it running" into the interval, the button and the dot.
 
-    `_toggle`, `_pause_on_manual_stroke` and `_raise_stop_alert` each have their own reason
-    to start or stop the run, and each used to write the interval's `disabled`, the button's
-    label and the dot's class directly -- three independent writers racing for the same
-    three outputs, which is exactly how the button and the dot could end up disagreeing
-    with what was actually running. Now they only ever set `status-running`, and this
-    callback is the single, deterministic view of it, so the controls can never show a state
-    that store does not hold.
+    `_toggle` and `_raise_stop_alert` each have their own reason to start or stop the run,
+    and each used to write the interval's `disabled`, the button's label and the dot's class
+    directly -- independent writers racing for the same three outputs, which is exactly how
+    the button and the dot could end up disagreeing with what was actually running. Now they
+    only ever set `status-running`, and this callback is the single, deterministic view of
+    it, so the controls can never show a state that store does not hold.
     """
     if running:
         return False, "Pause", "hmi-dot hmi-dot-live"
