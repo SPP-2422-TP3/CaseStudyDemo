@@ -77,6 +77,17 @@ GROUPS: list[tuple[str, str, list[Paper]]] = [
         "The two studies the pages are built on.",
         [
             Paper(
+                "Simulation Driven Modeling of Strip Misalignment: Enhancing Process Insight "
+                "and Failure Prediction in Sheet Metal Forming",
+                "J. Moske, M. Schumann, A. Wüst, K. Kersting, P. Groche",
+                "Journal of Physics: Conference Series 3104, 012058 — NUMISHEET 2025",
+                "10.1088/1742-6596/3104/1/012058",
+                "The method behind reading strip alignment on the status board: finite "
+                "element simulation links how the strip is positioned to the defects that "
+                "follow from it, and the plateau slope of the punch force is what carries "
+                "that position back out.",
+            ),
+            Paper(
                 "Information Content Analysis of Direct and Indirect Force Measurements for "
                 "Machine Learning-Based Process State Classification in Multi-stage Sheet "
                 "Metal Forming",
@@ -87,17 +98,6 @@ GROUPS: list[tuple[str, str, list[Paper]]] = [
                 "the dashboard: which force signals carry enough information to tell the "
                 "process state apart, and how much is lost when the sensor sits away from the "
                 "forming zone.",
-            ),
-            Paper(
-                "Simulation Driven Modeling of Strip Misalignment: Enhancing Process Insight "
-                "and Failure Prediction in Sheet Metal Forming",
-                "J. Moske, M. Schumann, A. Wüst, K. Kersting, P. Groche",
-                "Journal of Physics: Conference Series 3104, 012058 — NUMISHEET 2025",
-                "10.1088/1742-6596/3104/1/012058",
-                "The method behind reading strip alignment on the status board: finite "
-                "element simulation links how the strip is positioned to the defects that "
-                "follow from it, and the plateau slope of the punch force is what carries "
-                "that position back out.",
             ),
         ],
     ),
@@ -218,7 +218,7 @@ GLOSSARY = [
         "The landing page, and an assembled press run rather than a recording. Every stroke on "
         "it is a real measured stroke shown with its own model's prediction; the order they "
         "arrive in is authored, because the data holds fixed wear levels and fixed infeeds but "
-        "no transition between them. Wear and misalignment also come from two separate "
+        "no transition between them. Misalignment and wear also come from two separate "
         "campaigns on separate tooling, so showing them as one machine is a composition.",
     ),
     (
@@ -233,10 +233,10 @@ GLOSSARY = [
     ),
     (
         "Good, watch, stop",
-        "The state of a signal, and of the machine as its worst signal. Wear states come from "
-        "the classifier as the majority call over the last 20 strokes — the accurate "
-        "instrument, and one odd stroke should not stop a press. Alignment reads the running "
-        "mean of 10 against a tolerance that is set for the demo, not taken from the trials.",
+        "The state of a signal, and of the machine as its worst signal. Alignment reads the "
+        "running mean of 10 against a tolerance that is set for the demo, not taken from the "
+        "trials. Wear states come from the classifier as the majority call over the last 20 "
+        "strokes — the accurate instrument, and one odd stroke should not stop a press.",
     ),
     (
         "The wear stage track",

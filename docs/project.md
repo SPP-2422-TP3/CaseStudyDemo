@@ -24,7 +24,7 @@ Wear levels crossfade over their transitions — strokes are drawn from both rec
 ramping probability — so the rolling means drift rather than step. Nothing interpolates between two
 strokes and no curve is synthesised.
 
-Two further compositions: wear and misalignment come from separate measurement campaigns on separate
+Two further compositions: misalignment and wear come from separate measurement campaigns on separate
 tooling, and the first strokes of each block are skipped because a cold die reads as a briefly worn
 one. The board itself is laid out as press-side equipment, without even the site's top bar, and
 carries none of this — a shop-floor screen is not where a caveat gets read.
@@ -42,9 +42,9 @@ consumed can be computed — the board does not invent one. The continuous frict
 misalignment is likewise **one axis only**: the campaign varied overfeed along the feed direction,
 so there is no second axis to predict.
 
-Each card opens into the same per-stroke views the research pages use. Tool wear shows the raw force
-curve against the mean curve of each wear level, then the same stroke coloured by where the model
-found its evidence; strip misalignment shows the full stroke and the line fitted across its plateau.
+Each card opens into the same per-stroke views the research pages use. Strip misalignment shows the
+full stroke and the line fitted across its plateau; tool wear shows the raw force curve against the
+mean curve of each wear level, then the same stroke coloured by where the model found its evidence.
 An engineer who has seen those pages recognises the board immediately.
 
 ### Operator feedback

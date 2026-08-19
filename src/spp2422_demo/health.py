@@ -138,8 +138,8 @@ def alignment_signal(run: Run, stroke: int, tolerance_mm: float) -> Signal:
 def signals(run: Run, stroke: int, tolerance_mm: float) -> list[Signal]:
     """Every signal the board watches, in the order the cards read them."""
     return [
-        *(wear_signal(run, key, stroke) for key in STATIONS),
         alignment_signal(run, stroke, tolerance_mm),
+        *(wear_signal(run, key, stroke) for key in STATIONS),
     ]
 
 

@@ -447,7 +447,6 @@ def _model_settings_controls() -> html.Div:
     return html.Div(
         dbc.Row(
             [
-                _model_control(),
                 dbc.Col(
                     [
                         html.Div("Strip Alignment Tolerance (mm)", className="form-label"),
@@ -465,6 +464,7 @@ def _model_settings_controls() -> html.Div:
                     ],
                     lg=6,
                 ),
+                _model_control(),
             ],
             className="g-4 align-items-end",
         ),
