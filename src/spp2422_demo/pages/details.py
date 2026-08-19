@@ -28,6 +28,8 @@ TOOL_VIDEO = "tool_cad_animated.mp4"
 
 PROJECT_URL = "https://www.ifu.uni-stuttgart.de/spp-2422/teilprojekte/teilprojekt-3/"
 PUBLICATIONS_URL = "https://www.ifu.uni-stuttgart.de/spp-2422/publikationen/"
+PTU_URL = "https://www.ptu.tu-darmstadt.de"
+AIML_URL = "https://www.aiml.informatik.tu-darmstadt.de"
 REPO_URL = "https://github.com/SPP-2422-TP3/CaseStudyDemo"
 LICENSE_URL = f"{REPO_URL}/blob/main/LICENSE"
 AUTHORS = "Felix Divo, Antonia Wüst, Jonas Moske and Markus Schumann"
@@ -37,11 +39,15 @@ TEAM = ["Moske", "Schumann", "Wüst", "Divo", "Kersting", "Groche"]
 
 PEOPLE = [
     (
-        "Peter Groche",
+        "Prof. Peter Groche",
         "PtU · Lead",
         "https://www.ptu.tu-darmstadt.de/institut_3/mitarbeiterinnen_3/details_3853.en.jsp",
     ),
-    ("Kristian Kersting", "AIML Lab · Lead", "https://ml-research.github.io/people/kkersting/"),
+    (
+        "Prof. Kristian Kersting",
+        "AIML Lab · Lead",
+        "https://ml-research.github.io/people/kkersting/",
+    ),
     ("Felix Divo", "AIML Lab", "https://scholar.google.de/citations?user=TOu-cpQAAAAJ"),
     ("Antonia Wüst", "AIML Lab", "https://scholar.google.com/citations?user=BltylusAAAAJ"),
     ("Jonas Moske", "PtU", "https://www.researchgate.net/profile/Jonas-Moske"),
@@ -480,7 +486,7 @@ def layout(**_kwargs):
                                 ]
                             ),
                         ),
-                        lg=8,
+                        lg=9,
                     ),
                     dbc.Col(
                         panel(
@@ -497,9 +503,12 @@ def layout(**_kwargs):
                                             ),
                                             " — data-driven process modelling in metal forming. "
                                             "It pairs the Institute for Production Engineering "
-                                            "and Forming Machines (PtU) with the Artificial "
-                                            "Intelligence and Machine Learning Lab, both at "
-                                            "TU Darmstadt.",
+                                            "and Forming Machines (",
+                                            html.A("PtU", href=PTU_URL, target="_blank"),
+                                            ") with the Artificial Intelligence and Machine "
+                                            "Learning Lab (",
+                                            html.A("AIML Lab", href=AIML_URL, target="_blank"),
+                                            "), both at TU Darmstadt.",
                                         ]
                                     ),
                                     dbc.Row(
@@ -509,7 +518,7 @@ def layout(**_kwargs):
                                 ]
                             ),
                         ),
-                        lg=4,
+                        lg=3,
                     ),
                 ],
                 className="g-4 mb-4",
