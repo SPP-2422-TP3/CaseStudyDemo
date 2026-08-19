@@ -5,7 +5,7 @@
 A dashboard demo for an industrial colloquium, built on
 [SPP 2422 Teilprojekt 3](https://www.ifu.uni-stuttgart.de/spp-2422/teilprojekte/teilprojekt-3/) —
 *Optimierung des Wirkflächendesigns schnelllaufender Folgeverbundwerkzeuge unter Nutzung
-maschineller Lernalgorithmen* (TU Darmstadt: PtU and the AI/ML Lab).
+maschineller Lernalgorithmen* (TU Darmstadt: PtU and the AIML Lab).
 
 One press stroke of a progressive die drives three stations — shear cutting, **deep drawing** and
 **ironing**. Each forming station carries a force sensor. The demo shows what those signals reveal

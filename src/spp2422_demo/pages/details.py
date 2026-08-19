@@ -41,11 +41,11 @@ PEOPLE = [
         "PtU · Lead",
         "https://www.ptu.tu-darmstadt.de/institut_3/mitarbeiterinnen_3/details_3853.en.jsp",
     ),
-    ("Kristian Kersting", "AI/ML Lab · Lead", "https://ml-research.github.io/people/kkersting/"),
+    ("Kristian Kersting", "AIML Lab · Lead", "https://ml-research.github.io/people/kkersting/"),
+    ("Felix Divo", "AIML Lab", "https://scholar.google.de/citations?user=TOu-cpQAAAAJ"),
+    ("Antonia Wüst", "AIML Lab", "https://scholar.google.com/citations?user=BltylusAAAAJ"),
     ("Jonas Moske", "PtU", "https://www.researchgate.net/profile/Jonas-Moske"),
     ("Markus Schumann", "PtU", "https://www.researchgate.net/profile/Markus_Schumann"),
-    ("Antonia Wüst", "AI/ML Lab", "https://scholar.google.com/citations?user=BltylusAAAAJ"),
-    ("Felix Divo", "AI/ML Lab", "https://scholar.google.de/citations?user=TOu-cpQAAAAJ"),
 ]
 
 
@@ -162,7 +162,7 @@ GROUPS: list[tuple[str, str, list[Paper]]] = [
     ),
     (
         "The Machine Learning Side",
-        "Work from the AI/ML Lab: how this demo explains and validates itself, and where the "
+        "Work from the AIML Lab: how this demo explains and validates itself, and where the "
         "group's time series modelling goes next.",
         [
             Paper(
