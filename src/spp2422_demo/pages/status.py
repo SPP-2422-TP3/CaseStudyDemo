@@ -16,6 +16,8 @@ rather than on the board itself -- a shop-floor screen is not where a caveat get
 
 from __future__ import annotations
 
+import math
+
 import dash
 import dash_bootstrap_components as dbc
 from dash import ALL, Input, Output, State, callback, clientside_callback, ctx, dcc, html, no_update
@@ -60,7 +62,17 @@ from spp2422_demo.scenario import (
 
 dash.register_page(__name__, path="/", name="Status", order=0, top_level=True)
 
-STREAM_INTERVAL_MS = 600
+# Operator-facing speed range for the run, in strokes per minute.
+MIN_SPEED = 10
+MAX_SPEED = 1000
+DEFAULT_SPEED = 100
+# The interval never ticks faster than this: below it, a round trip to re-render the
+# three cards (one of them a Plotly graph) cannot reliably keep up, and the run would
+# lag behind its own clock instead of skipping frames cleanly. Past this point, a higher
+# stroke rate is reached by advancing more strokes per tick rather than ticking faster --
+# see `_interval_and_step` and the clientside callbacks below, which mirror it in JS since
+# the run itself is stepped in the browser.
+MIN_TICK_MS = 150
 # The single page behind the board; see the help link in `_machine_bar`.
 DETAILS_PATH = "/details"
 # A dot-and-stem info glyph, drawn by hand rather than pulled from an icon font: the
@@ -75,6 +87,24 @@ INFO_ICON = (
 # The board opens with its trailing windows already full, so the first frame reads the
 # same way every later one does rather than averaging a single stroke.
 FIRST_STROKE = WEAR_WINDOW - 1
+
+
+def _interval_and_step(speed_per_min: int) -> tuple[int, int]:
+    """How often the interval should tick, and how many strokes it should advance each
+    tick, to run at `speed_per_min` without ticking faster than `MIN_TICK_MS`.
+
+    Below `MIN_TICK_MS`, redraws would be requested faster than a round trip to the
+    server can clear them, so the extra speed is spent skipping strokes between redraws
+    instead. Only used here to set the initial interval and step; the running clientside
+    callbacks below repeat this same arithmetic in JS, since the run itself is stepped in
+    the browser -- keep the two in step if either changes.
+    """
+    ms_per_stroke = 60_000 / speed_per_min
+    strokes_per_tick = max(1, math.ceil(MIN_TICK_MS / ms_per_stroke))
+    return round(ms_per_stroke * strokes_per_tick), strokes_per_tick
+
+
+_INITIAL_INTERVAL_MS, _INITIAL_STEP = _interval_and_step(DEFAULT_SPEED)
 
 
 def _scenario_picker() -> dbc.RadioItems:
@@ -367,7 +397,25 @@ def _model_control() -> dbc.Col:
                 clearable=False,
             ),
         ],
-        lg=4,
+        lg=6,
+    )
+
+
+def _speed_control() -> dbc.Col:
+    return dbc.Col(
+        [
+            html.Div("Speed (strokes/min)", className="form-label"),
+            dcc.Slider(
+                id="status-speed",
+                min=MIN_SPEED,
+                max=MAX_SPEED,
+                step=10,
+                value=DEFAULT_SPEED,
+                marks={value: str(value) for value in (10, 250, 500, 750, 1000)},
+                tooltip={"placement": "bottom", "always_visible": False},
+            ),
+        ],
+        lg=6,
     )
 
 
@@ -415,7 +463,7 @@ def _controls() -> html.Div:
                 className="g-4 align-items-end",
             ),
             dbc.Row(
-                [_model_control()],
+                [_model_control(), _speed_control()],
                 className="g-4 mt-1",
             ),
         ],
@@ -431,7 +479,8 @@ def layout(**_kwargs):
             html.Div(id="status-reports-strip"),
             _feedback_bar(),
             _controls(),
-            dcc.Interval(id="status-interval", interval=STREAM_INTERVAL_MS, disabled=True),
+            dcc.Interval(id="status-interval", interval=_INITIAL_INTERVAL_MS, disabled=True),
+            dcc.Store(id="status-step", data=_INITIAL_STEP),
             dcc.Store(id="status-running", data=False),
             dcc.Store(id="status-reports", data=[]),
             dcc.Store(id="status-feedback-anchor"),
@@ -558,6 +607,25 @@ def _reports_strip(stored):
     )
 
 
+# The speed slider only ever picks strokes per minute; turning that into an interval and a
+# per-tick step is `_interval_and_step` above, mirrored here in JS since the run itself is
+# stepped in the browser. Once one-stroke-per-tick would mean ticking faster than
+# MIN_TICK_MS, the extra speed instead shows up as a bigger step at that same tick rate, so
+# the board skips frames cleanly instead of piling up redraws it can't clear in time.
+clientside_callback(
+    f"""
+    function(speed) {{
+        const msPerStroke = 60000 / speed;
+        const strokesPerTick = Math.max(1, Math.ceil({MIN_TICK_MS} / msPerStroke));
+        return [Math.round(msPerStroke * strokesPerTick), strokesPerTick];
+    }}
+    """,
+    Output("status-interval", "interval"),
+    Output("status-step", "data"),
+    Input("status-speed", "value"),
+)
+
+
 # Stepping the run forward runs in the browser rather than on the server. A manual jump on
 # the same slider is also just a browser-side write to its `value`, so doing the tick here
 # too means the two can never race a network round trip against each other: whichever the
@@ -566,13 +634,15 @@ def _reports_strip(stored):
 # run to stay safe -- the next tick simply continues from wherever the slider now points.
 clientside_callback(
     f"""
-    function(n_intervals, stroke) {{
-        return (stroke >= {N_STROKES - 1}) ? {FIRST_STROKE} : stroke + 1;
+    function(n_intervals, stroke, step) {{
+        const next = stroke + (step || 1);
+        return (next > {N_STROKES - 1}) ? {FIRST_STROKE} : next;
     }}
     """,
     Output("status-stroke", "value"),
     Input("status-interval", "n_intervals"),
     State("status-stroke", "value"),
+    State("status-step", "data"),
     prevent_initial_call=True,
 )
 
